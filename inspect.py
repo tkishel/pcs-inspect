@@ -14,7 +14,7 @@ pc_parser.add_argument(
     '--organization',
     type=str,
     required=True,
-    help='* Required * Prefix of (existing) policy and alert files to inspect.')
+    help='*Required* Prefix of the policy and alert files created by the inspect.sh script.')
 args = pc_parser.parse_args()
 organization = args.organization
 

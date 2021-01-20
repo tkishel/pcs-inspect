@@ -13,10 +13,10 @@ USERNAME=yyy
 # Prisma Cloud › Login Credentials: Secret Key
 PASSWORD=zzz
 
-# Customer Name
+# Customer Name, not a Cloud Account/Provider Organization
 ORGANIZATION=example
 
-# Cloud Account
+# Optionally limit Alert query to one Cloud Account
 ORGANIZATION_ACCOUNT=
 
 # Logon
