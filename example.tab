@@ -1,0 +1,200 @@
+#################################################################################
+All Open Alerts: By Policy Severity, IaC, and Remediation
+#################################################################################
+
+Open Alerts: High-Severity	8878
+Open Alerts: Medium-Severity	133993
+Open Alerts: Low-Severity	62848
+Open Alerts: With IaC	5050
+Open Alerts: With Remediation	5801
+
+#################################################################################
+Last Month: Open and Closed Alerts: By Compliance Standard
+#################################################################################
+
+Compliance Standard	High-Severity Alert Count	Medium-Severity Alert Count	Low-Severity Alert Count
+CCPA 2018	1199	31609	3367
+CIS v1.0.0 (GCP)	0	0	0
+CIS v1.0.0 (OCI)	0	0	0
+CIS v1.1 (Azure)	0	0	0
+CIS v1.1.0 (GCP)	0	0	0
+CIS v1.1.0 (GKE)	0	0	0
+CIS v1.2.0 (AWS)	44	3136	734
+CIS v1.3.0 (AWS)	44	3208	2485
+CSA CCM v3.0.1	1125	583	3288
+GDPR	1328	571	3153
+HIPAA	1195	52	3138
+HITRUST CSF v9.3	1126	1066	3288
+ISO 27001:2013	141	491	3158
+MITRE ATT&CK [Beta]	1328	3671	756
+Multi-Level Protection Scheme (MLPS) v2.0	209	33389	3463
+NIST 800-171 Rev1	141	774	3273
+NIST 800-53 Rev 5	211	33669	3500
+NIST 800-53 Rev4	1196	33669	3515
+NIST CSF	1332	538	3158
+PCI DSS v3.2	1127	172	2533
+PIPEDA	1243	31636	3367
+SOC 2	1328	583	3283
+
+#################################################################################
+Last Month: Open and Closed Alerts: By Policy
+#################################################################################
+
+policyName	policySeverity	policyType	policyShiftable	policyRemediable	alertCount	policyComplianceStandards
+AWS ACM Certificate with wildcard domain name	low	config	False	False	3	"CCPA 2018,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS API Gateway endpoints without client certificate authentication	medium	config	False	False	15	"CCPA 2018,CSA CCM v3.0.1,HITRUST CSF v9.3,ISO 27001:2013,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA,SOC 2"
+AWS API gateway request parameter is not validated	medium	config	False	False	226	""
+AWS Access logging not enabled on S3 buckets	medium	config	False	False	44	"CCPA 2018,CIS v1.3.0 (AWS),CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PCI DSS v3.2,PIPEDA,SOC 2"
+AWS Application Load Balancer (ALB) listener that allow connection requests over HTTP	medium	config	False	False	19	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Certificate Manager (ACM) contains certificate pending validation	low	config	False	False	2	"CSA CCM v3.0.1,HITRUST CSF v9.3,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,SOC 2"
+AWS Certificate Manager (ACM) has unused certificates	medium	config	False	False	14	"CSA CCM v3.0.1,HITRUST CSF v9.3,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,SOC 2"
+AWS CloudFormation stack configured without SNS topic	medium	config	False	False	18	"Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS CloudFront Distributions with Field-Level Encryption not enabled	medium	config	False	False	2	"Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS CloudFront distribution with access logging disabled	medium	config	False	False	2	"Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS CloudFront origin protocol policy does not enforce HTTPS-only	high	config	False	False	1	"Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS CloudFront viewer protocol policy is not configured with HTTPS	high	config	False	False	1	"Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS CloudFront web distribution with AWS Web Application Firewall (AWS WAF) service disabled	medium	config	False	False	2	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS CloudFront web distribution with default SSL certificate	medium	config	False	False	1	"Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS CloudFront web distribution with geo restriction disabled	low	config	False	False	2	"Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS CloudTrail is not enabled on the account	high	config	False	False	1	"CCPA 2018,GDPR,HITRUST CSF v9.3,ISO 27001:2013,MITRE ATT&CK [Beta],NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PCI DSS v3.2,PIPEDA,SOC 2"
+AWS CloudTrail logs are not encrypted using Customer Master Keys (CMKs)	medium	config	True	False	1	"CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,SOC 2"
+AWS Cloudfront Distribution with S3 have Origin Access set to disabled	medium	config	False	False	1	"NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS Config Recording is disabled	medium	config	False	False	19	"CCPA 2018,CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+AWS Customer Master Key (CMK) rotation is not enabled	medium	config	True	True	120	"CCPA 2018,CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PCI DSS v3.2,PIPEDA,SOC 2"
+AWS Database Migration Service endpoint do not have SSL configured	medium	config	False	False	20	""
+AWS Default Security Group does not restrict all traffic	high	config	True	False	28	"CCPA 2018,CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+AWS DynamoDB encrypted using AWS owned CMK instead of AWS managed CMK	medium	config	False	False	2495	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS EBS Snapshot with access for unmonitored cloud accounts	medium	config	False	False	3	"CCPA 2018,CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+AWS EBS Volume is unattached	medium	config	False	False	779	"Multi-Level Protection Scheme (MLPS) v2.0"
+AWS EBS volume not encrypted using Customer Managed Key	medium	config	False	False	21188	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS EBS volumes are not encrypted	low	config	False	False	2474	"CCPA 2018,CIS v1.3.0 (AWS),CSA CCM v3.0.1,GDPR,HIPAA,HITRUST CSF v9.3,ISO 27001:2013,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PCI DSS v3.2,PIPEDA,SOC 2"
+AWS EC2 Instance IAM Role not enabled	medium	config	False	False	2878	"CCPA 2018,CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS EC2 Instance Scheduled Events	medium	config	False	False	263	"Multi-Level Protection Scheme (MLPS) v2.0"
+AWS EC2 instances with Public IP and associated with Security Groups have Internet Access	medium	config	False	False	75	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS EKS cluster endpoint access publicly enabled	medium	config	False	True	29	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS EKS cluster using the default VPC	medium	config	False	False	1	"Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS EKS control plane logging disabled	low	config	False	True	29	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS EMR cluster is not configured with security configuration	medium	config	False	False	12	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS ElastiCache Redis cluster with Redis AUTH feature disabled	medium	config	False	False	15	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS ElastiCache Redis cluster with encryption for data at rest disabled	medium	config	False	False	15	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS ElastiCache Redis cluster with in-transit encryption disabled	medium	config	False	False	15	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Elastic Load Balancer (Classic) SSL negotiation policy configured with vulnerable SSL protocol	medium	config	False	False	2	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Elastic Load Balancer (Classic) with access log disabled	medium	config	False	False	5	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Elastic Load Balancer (Classic) with connection draining disabled	medium	config	False	True	4	""
+AWS Elastic Load Balancer (Classic) with cross-zone load balancing disabled	medium	config	False	True	4	"Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS Elastic Load Balancer v2 (ELBv2) Application Load Balancer (ALB) with access log disabled	medium	config	False	False	170	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Elastic Load Balancer v2 (ELBv2) with listener TLS/SSL is not configured	medium	config	False	False	62	"NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS Elastic Load Balancer with listener TLS/SSL is not configured	medium	config	False	False	4	"CCPA 2018,CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+AWS ElasticSearch cluster not in a VPC	medium	config	True	False	27	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Elasticsearch domain Encryption for data at rest is disabled	low	config	False	False	5	"CCPA 2018,CSA CCM v3.0.1,HITRUST CSF v9.3,ISO 27001:2013,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA"
+AWS Elasticsearch domain has Dedicated master set to disabled	low	config	False	False	6	""
+AWS Elasticsearch domain has Index slow logs set to disabled	low	config	False	False	27	"CSA CCM v3.0.1,HITRUST CSF v9.3,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,SOC 2"
+AWS Elasticsearch domain has Search slow logs set to disabled	low	config	False	False	27	"CSA CCM v3.0.1,HITRUST CSF v9.3,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,SOC 2"
+AWS Elasticsearch domain has Zone Awareness set to disabled	low	config	False	False	15	"CSA CCM v3.0.1,HITRUST CSF v9.3,NIST 800-53 Rev4,SOC 2"
+AWS Elasticsearch domain publicly accessible	medium	config	False	False	27	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS IAM Groups with Administrator Access Permissions 	medium	config	False	False	1	""
+AWS IAM Roles with Administrator Access Permissions 	medium	config	False	False	22	""
+AWS IAM has expired SSL/TLS certificates	medium	config	False	False	1	"CCPA 2018,CIS v1.3.0 (AWS),MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS IAM password policy does not have a minimum of 14 characters	medium	config	True	True	1	"CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),CSA CCM v3.0.1,GDPR,HIPAA,HITRUST CSF v9.3,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,SOC 2"
+AWS IAM policy attached to users	low	config	True	False	664	"CCPA 2018,CIS v1.2.0 (AWS),CSA CCM v3.0.1,GDPR,HIPAA,HITRUST CSF v9.3,ISO 27001:2013,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+AWS IAM support access policy is not associated to any role	medium	config	False	False	2	"CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS IAM user has both Console access and Access Keys	medium	config	False	False	17	"CCPA 2018,CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),GDPR,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,PIPEDA"
+AWS Inactive users for more than 30 days	low	config	False	False	59	"CIS v1.2.0 (AWS),CSA CCM v3.0.1,HITRUST CSF v9.3,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,PCI DSS v3.2,SOC 2"
+AWS KMS Customer Managed Key not in use	medium	config	False	False	110	"MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS KMS Key scheduled for deletion	medium	config	False	False	110	"Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS Kinesis streams are not encrypted using Server Side Encryption	medium	config	False	False	5	"CCPA 2018,CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+AWS Lambda Environment Variables not encrypted at-rest using CMK	low	config	False	False	159	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Lambda Function is not assigned to access within VPC	medium	config	False	False	204	"Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS Lambda functions with tracing not enabled	medium	config	False	False	277	"HITRUST CSF v9.3,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS Log metric filter and alarm does not exist for AWS Config configuration changes	low	config	False	False	1	"CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS Log metric filter and alarm does not exist for AWS management console authentication failures	low	config	False	False	1	"CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS Log metric filter and alarm does not exist for CloudTrail configuration changes	low	config	False	False	1	"CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS Log metric filter and alarm does not exist for IAM policy changes	low	config	False	False	1	"CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS Log metric filter and alarm does not exist for Network Access Control Lists (NACL) changes	low	config	False	False	1	"CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS Log metric filter and alarm does not exist for Network gateways changes	low	config	False	False	1	"CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS Log metric filter and alarm does not exist for Route table changes	low	config	False	False	1	"CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS Log metric filter and alarm does not exist for S3 bucket policy changes	low	config	False	False	1	"CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS Log metric filter and alarm does not exist for VPC changes	low	config	False	False	1	"CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS Log metric filter and alarm does not exist for disabling or scheduled deletion of customer created CMKs	low	config	False	False	1	"CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS Log metric filter and alarm does not exist for unauthorized API calls	low	config	False	False	1	"CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS MFA is not enabled on Root account	high	config	False	False	1	"CCPA 2018,CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,PCI DSS v3.2,PIPEDA,SOC 2"
+AWS MFA not enabled for IAM users	medium	config	False	False	7	"CCPA 2018,CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),CSA CCM v3.0.1,GDPR,HIPAA,HITRUST CSF v9.3,ISO 27001:2013,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,PCI DSS v3.2,PIPEDA,SOC 2"
+AWS MQ is publicly accessible	medium	config	False	False	1	""
+AWS Network ACLs allow ingress traffic to server administration ports	medium	config	False	False	103	""
+AWS Network ACLs with Inbound rule to allow All Traffic	medium	config	False	False	103	"CCPA 2018,HITRUST CSF v9.3,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Network ACLs with Outbound rule to allow All Traffic	medium	config	False	False	103	"CCPA 2018,HITRUST CSF v9.3,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS RDS DB cluster encryption is disabled	medium	config	False	False	2	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS RDS DB cluster is encrypted using default KMS key instead of CMK	medium	config	False	False	61	"NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS RDS DB snapshot is encrypted using default KMS key instead of CMK	medium	config	False	False	707	"NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS RDS DB snapshot is not encrypted	medium	config	False	False	394	"NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS RDS database instance is publicly accessible	medium	config	False	True	57	"CCPA 2018,CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+AWS RDS database not encrypted using Customer Managed Key	medium	config	False	False	97	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS RDS event subscription disabled for DB instance	medium	config	False	True	3	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS RDS instance is not encrypted	medium	config	True	False	1	"CCPA 2018,CSA CCM v3.0.1,GDPR,HIPAA,HITRUST CSF v9.3,ISO 27001:2013,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PCI DSS v3.2,PIPEDA,SOC 2"
+AWS RDS instance not in private subnet	medium	config	False	False	1	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS RDS instance with Multi-Availability Zone disabled	medium	config	True	True	6	"Multi-Level Protection Scheme (MLPS) v2.0"
+AWS RDS instance with copy tags to snapshots disabled	low	config	True	True	5	""
+AWS RDS minor upgrades not enabled	low	config	False	True	5	"NIST 800-53 Rev 5,NIST 800-53 Rev4"
+AWS RDS retention policy less than 7 days	medium	config	False	False	27	"Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Redshift clusters should not be publicly accessible	medium	config	True	True	1	"CCPA 2018,CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+AWS Redshift database does not have audit logging enabled	medium	config	True	False	1	"CCPA 2018,CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+AWS Redshift does not have require_ssl configured	medium	config	True	False	1	"CCPA 2018,CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+AWS Redshift instances are not encrypted	high	config	True	False	1	"CCPA 2018,CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PCI DSS v3.2,PIPEDA,SOC 2"
+AWS S3 Bucket has Global GET Permissions enabled via bucket policy	high	config	False	False	1	"CCPA 2018,MITRE ATT&CK [Beta],NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS S3 Buckets Block public access setting disabled	high	config	False	True	23	""
+AWS S3 Object Versioning is disabled	medium	config	True	True	28	"MITRE ATT&CK [Beta]"
+AWS S3 bucket accessible to unmonitored cloud accounts	medium	config	False	False	1	"CCPA 2018,CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+AWS S3 bucket is not configured with MFA Delete	low	config	False	False	18	"CCPA 2018,MITRE ATT&CK [Beta],NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS S3 buckets do not have server side encryption	low	config	True	False	15	"CCPA 2018,CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+AWS SNS topic encrypted using default KMS key instead of CMK	medium	config	False	False	2	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS SNS topic with server-side encryption disabled	medium	config	False	False	850	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS SQS server side encryption not enabled	medium	config	False	False	2967	"CCPA 2018,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Security Group allows all traffic on CIFS port (445)	high	config	False	False	1	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Security Group allows all traffic on DNS port (53)	high	config	False	False	1	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Security Group allows all traffic on MSQL port (4333)	high	config	False	False	1	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Security Group allows all traffic on MYSQL port (3306)	high	config	False	False	4	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Security Group allows all traffic on NetBIOS port (138)	high	config	False	False	1	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Security Group allows all traffic on PostgreSQL port (5432)	high	config	False	False	1	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Security Group allows all traffic on RDP port (3389)	high	config	True	True	3	"CCPA 2018,CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),CSA CCM v3.0.1,GDPR,HIPAA,HITRUST CSF v9.3,ISO 27001:2013,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+AWS Security Group allows all traffic on SQL Server port (1433)	high	config	False	False	1	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Security Group allows all traffic on SQL Server port (1434)	high	config	False	False	1	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Security Group allows all traffic on SSH port (22)	high	config	True	True	12	"CCPA 2018,CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),CSA CCM v3.0.1,GDPR,HIPAA,HITRUST CSF v9.3,ISO 27001:2013,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+AWS Security Group allows all traffic on VNC Listener port (5500)	high	config	False	False	1	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Security Group allows all traffic on VNC Server port (5900)	high	config	False	False	1	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Security Group allows all traffic on Windows RPC port (135)	high	config	False	False	1	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Security Groups allow internet traffic to ports which are not commonly used	high	config	False	False	52	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Security Groups with Inbound rule overly permissive to All Traffic	high	config	True	True	1	"CCPA 2018,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-53 Rev 5,NIST 800-53 Rev4,PIPEDA"
+AWS Security groups allow internet traffic	high	config	False	True	95	"CCPA 2018,CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,MITRE ATT&CK [Beta],Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PCI DSS v3.2,PIPEDA,SOC 2"
+AWS VPC has flow logs disabled	medium	config	False	False	43	"CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),CSA CCM v3.0.1,GDPR,HIPAA,HITRUST CSF v9.3,ISO 27001:2013,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,SOC 2"
+AWS VPC not in use	medium	config	False	False	2	""
+AWS VPC subnets should not allow automatic public IP assignment	medium	config	True	True	170	"CCPA 2018,CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,Multi-Level Protection Scheme (MLPS) v2.0,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+AWS access keys are not rotated for 90 days	medium	config	False	False	39	"CCPA 2018,CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,MITRE ATT&CK [Beta],NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+AWS access keys not used for more than 90 days	medium	config	False	False	27	"CIS v1.3.0 (AWS),CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,MITRE ATT&CK [Beta],NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,SOC 2"
+AWS root account configured with Virtual MFA	medium	config	False	False	8	"CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,SOC 2"
+Account hijacking attempts	high	anomaly	False	False	1	"GDPR,MITRE ATT&CK [Beta],NIST CSF,SOC 2"
+CloudTrail trail is not integrated with CloudWatch Log	medium	config	False	False	1	"CCPA 2018,CIS v1.2.0 (AWS),CIS v1.3.0 (AWS),CSA CCM v3.0.1,GDPR,HITRUST CSF v9.3,ISO 27001:2013,NIST 800-171 Rev1,NIST 800-53 Rev 5,NIST 800-53 Rev4,NIST CSF,PIPEDA,SOC 2"
+Excessive login failures	high	anomaly	False	False	11	"GDPR,MITRE ATT&CK [Beta],NIST CSF,SOC 2"
+Instance is communicating with ports known to mine Bitcoin	high	network	False	False	4	"CCPA 2018,HIPAA,MITRE ATT&CK [Beta],NIST CSF,PIPEDA"
+Instance is communicating with ports known to mine Ethereum	high	network	False	False	1	"CCPA 2018,HIPAA,MITRE ATT&CK [Beta],NIST CSF,PIPEDA"
+Internet connectivity via TCP over insecure port	high	network	False	False	44	"GDPR,HIPAA,NIST CSF,PCI DSS v3.2,PIPEDA,SOC 2"
+Internet exposed instances	high	network	False	False	985	"CCPA 2018,CSA CCM v3.0.1,GDPR,HIPAA,HITRUST CSF v9.3,MITRE ATT&CK [Beta],NIST 800-53 Rev4,NIST CSF,PCI DSS v3.2,PIPEDA,SOC 2"
+List of VPCs less then 20	low	config	False	False	5	""
+S3 buckets with configurations set to host websites	medium	config	False	False	2	"ISO 27001:2013"
+Unusual server port activity (Internal)	high	anomaly	False	False	3	""
+Unusual user activity	high	anomaly	False	False	146	"GDPR,HIPAA,MITRE ATT&CK [Beta],NIST CSF,SOC 2"
+
+#################################################################################
+Last Month: Open and Closed Alerts: Totals
+#################################################################################
+
+Alerts: Total	40103
+Alerts: Open	34028
+Alerts: Resolved	6075
+Alerts: Resolved by Delete	4315
+Alerts: Resolved by Update	1759
+Alerts: Resolved	6075
+Alerts: High-Severity	1429
+Alerts: Medium-Severity	35143
+Alerts: Low-Severity	3531
+Alerts: With IaC	1086
+Alerts: With Remediation	596
