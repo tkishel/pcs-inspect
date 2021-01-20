@@ -5,3 +5,5 @@
 *.conf
 *.tab
 *.txt
+
+!example.tab
