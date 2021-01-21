@@ -62,6 +62,9 @@ if not os.path.isfile(alert_file):
 # Counters and Structures.
 ##########################################################################################
 
+# Note it appears that `audit_event` alerts are returned from the /policy endpoint, not from the /alert endpoint.
+# The `policy_counts` structure counts results from the /alert endpoint. So, included only for reference.
+
 policy_counts = {
     'high':        0,
     'medium':      0,
@@ -229,6 +232,7 @@ print("Policies with Alerts: Low-Severity\t%s"     % policy_counts['low'])
 print("Policies with Alerts: Anomaly\t%s"          % policy_counts['anomaly'])
 print("Policies with Alerts: Config\t%s"           % policy_counts['config'])
 print("Policies with Alerts: Network\t%s"          % policy_counts['network'])
+# print("Policies with Alerts: Audit\t%s"          % policy_counts['audit_event']) # See Note above.
 print
 print("Alerts: Total\t%s"              % len(alert_list))
 print("Alerts: Open\t%s"               % alert_counts['open'])
