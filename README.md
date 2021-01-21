@@ -14,6 +14,7 @@ calculating various results. It's output utilizes tabs, allowing for import into
 * Download the `inspect.sh` and `inspect.py` scripts.
 * Execute the `inspect.sh` script to collect the data.
 * Execute the `inspect.py` script to process the data.
+* Import the data into Google Sheets, and/or Google Slides (For example: [PCS Inspect](https://docs.google.com/presentation/d/10x_PGAu0ZPUGZMc4Tfevf9gpXvhIUOwGrBuRBkI6Jjc/edit?usp=sharing))
 * Profit!
 
 ## Example
