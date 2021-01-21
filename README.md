@@ -32,4 +32,4 @@ chmod +x inspect.sh inspect.py
 
 ## To Do:
 
-* Allow the `inspect.py` script to output directly to Google Sheets and/or Google Slides, or a to a file format directly importable into one or both of them.
+* Allow the `inspect.py` script to output directly to Google Sheets and/or Google Slides, or to a file directly importable into one or both of those formats.
