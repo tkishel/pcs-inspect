@@ -1,15 +1,6 @@
-#################################################################################
-All Open Alerts: By Policy Severity, IaC, and Remediation
-#################################################################################
-
-Open Alerts: High-Severity	8878
-Open Alerts: Medium-Severity	133993
-Open Alerts: Low-Severity	62848
-Open Alerts: With IaC	5050
-Open Alerts: With Remediation	5801
 
 #################################################################################
-Last Month: Open and Closed Alerts: By Compliance Standard
+# SHEET: By Compliance Standard, Open and Closed Alerts, Time Range - Past 1 Month
 #################################################################################
 
 Compliance Standard	High-Severity Alert Count	Medium-Severity Alert Count	Low-Severity Alert Count
@@ -37,7 +28,7 @@ PIPEDA	1243	31636	3367
 SOC 2	1328	583	3283
 
 #################################################################################
-Last Month: Open and Closed Alerts: By Policy
+# SHEET: By Policy, Open and Closed Alerts, Time Range - Past 1 Month
 #################################################################################
 
 policyName	policySeverity	policyType	policyShiftable	policyRemediable	alertCount	policyComplianceStandards
@@ -184,7 +175,7 @@ Unusual server port activity (Internal)	high	anomaly	False	False	3	""
 Unusual user activity	high	anomaly	False	False	146	"GDPR,HIPAA,MITRE ATT&CK [Beta],NIST CSF,SOC 2"
 
 #################################################################################
-Last Month: Open and Closed Alerts: Totals
+# SHEET: Alert Summary, Open and Closed Alerts, Time Range - Past 1 Month
 #################################################################################
 
 Alerts: Total	40103
@@ -198,3 +189,4 @@ Alerts: Medium-Severity	35143
 Alerts: Low-Severity	3531
 Alerts: With IaC	1086
 Alerts: With Remediation	596
+

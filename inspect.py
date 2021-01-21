@@ -2,23 +2,61 @@
 
 import argparse
 import json
+import os
 import sys
 
 ##########################################################################################
 # Configuration
 ##########################################################################################
 
-pc_parser = argparse.ArgumentParser(prog='inspect')
+pc_parser = argparse.ArgumentParser(prog='pcsinspect')
+
 pc_parser.add_argument(
-    '-o',
-    '--organization',
+    '-c',
+    '--customer',
     type=str,
     required=True,
-    help='*Required* Prefix of the policy and alert files created by the inspect.sh script.')
+    help='*Required* Customer Name, used for input policy and alert file names')
+
+# https://api.docs.prismacloud.io/reference#time-range-model
+
+pc_parser.add_argument(
+    '-ta',
+    '--time_range_amount',
+    type=int,
+    default=1,
+    choices=[1, 2, 3],
+    help="(Optional) Time Range Amount of the data in the alert file. Default: 1")
+
+pc_parser.add_argument(
+    '-tu',
+    '--time_range_unit',
+    type=str,
+    default='month',
+    choices=['day', 'week', 'month', 'year'],
+    help="(Optional) Time Range Unit of the data in the alert file. Default: 'month'")
+
 args = pc_parser.parse_args()
-organization = args.organization
+
+customer = args.customer
+policy_file = '%s-policies.txt' % customer
+alert_file = '%s-alerts.txt' % customer
+time_range_label = 'Time Range - Past %s %s' % (args.time_range_amount, args.time_range_unit.capitalize()) 
 
 # Use inspect.sh or the commented curl commands in this script to create the policy and alert files.
+
+##########################################################################################
+# Validation.
+##########################################################################################
+
+if not os.path.isfile(policy_file):
+    print('Error: Policy file does not exist: %' % policy_file)
+    sys.exit(1)
+
+if not os.path.isfile(alert_file):
+    print('Error: Alert file does not exist: %' % alert_file)
+    sys.exit(1)
+
 
 ##########################################################################################
 # Counters and Structures.
@@ -36,34 +74,29 @@ alert_counts = {
     'remediable':       0,
 }
 
-policy_alert_counts = {
-    'alerts_open_high':        0,
-    'alerts_open_medium':      0,
-    'alerts_open_low':         0,
-    'alerts_open_shiftable':   0,
-    'alerts_open_remediable':  0,
-}
-
 policies = {}
 alerts_by_compliance_standard = {}
 alerts_by_policy = {}
+
 
 ##########################################################################################
 # Loop through all Policies and collect the details of each Policy.
 ##########################################################################################
 
+# Example API request to generate policies.txt:
+#
 # curl -s --request GET \
 #   --url "${API}/policy?policy.enabled=true" \
 #   --header 'Accept: */*' \
 #   --header "x-redlock-auth: ${TOKEN}" \
-#   | jq > ${ORGANIZATION}-policies.txt
+#   | jq > ${CUSTOMER_NAME}-policies.txt
 
-with open('%s-policies.txt' % organization, 'r') as f:
+with open(policy_file, 'r') as f:
   policy_list = json.load(f)
 
 for policy in policy_list:
     policyId = policy['policyId']
-    # Transform Policy from policy_list to policies.
+    # Transform Policies from policy_list to policies.
     if not policies.has_key(policyId):
         policies[policyId] = {}
     policies[policyId]['policyName'] = policy['name']
@@ -85,14 +118,6 @@ for policy in policy_list:
     for standard in compliance_standards_list:
         if not alerts_by_compliance_standard.has_key(standard):
             alerts_by_compliance_standard[standard] = {'high': 0, 'medium': 0, 'low': 0}
-    # Count Open Alerts by Severity
-    policy_alert_counts['alerts_open_%s' % policy['severity']] += policy['openAlertsCount']
-    # Count Open Alerts by IaC
-    if policies[policyId]['policyShiftable']:
-        policy_alert_counts['alerts_open_shiftable'] += policy['openAlertsCount']
-    # Count Open Alerts by Remediation
-    if policies[policyId]['policyRemediable']:
-        policy_alert_counts['alerts_open_remediable'] += policy['openAlertsCount']
 
 
 ##########################################################################################
@@ -100,21 +125,23 @@ for policy in policy_list:
 # Some details come from the Alert, some from the associated Policy.
 ##########################################################################################
 
+# Example API request to generate alerts.txt:
+#
 # curl -s --request POST \
 #   --url "${API}/alert" \
 #   --header 'Accept: */*' \
 #   --header 'Content-Type: application/json; charset=UTF-8' \
 #   --header "x-redlock-auth: ${TOKEN}" \
-#   --data "{\"timeRange\":{\"value\":{\"unit\":\"month\",\"amount\":1},\"type\":\"relative\"}}" \
-#   | jq > ${ORGANIZATION}-alerts.txt
+#   --data "{\"timeRange\":{\"value\":{\"unit\":\"${TIME_RANGE_UNIT}\",\"amount\":${TIME_RANGE_AMOUNT}},\"type\":\"relative\"}}" \
+#   | jq > ${CUSTOMER_NAME}-alerts.txt
   
-with open('%s-alerts.txt' % organization, 'r') as f:
+with open(alert_file, 'r') as f:
   alert_list = json.load(f)
 
 for alert in alert_list:
     policyId = alert['policy']['policyId']
     policyName = policies[policyId]['policyName']
-    # Transform Alert from alert_list to alerts_by_policy, and initialize Alert Count (to avoid an error with += when the variable is undefined).
+    # Transform alerts from alert_list to alerts_by_policy, and initialize Alert Count (to avoid an error with += when the variable is undefined).
     if not alerts_by_policy.has_key(policyName):
         alerts_by_policy[policyName] = {'policyId': policyId, 'alertCount': 0}
     # Increment Compliance Standards Alert Count
@@ -139,39 +166,27 @@ for alert in alert_list:
     if alert['policy']['remediable']:
         alert_counts['remediable'] += 1
 
+
 ##########################################################################################
 # Output tables and totals.
 ##########################################################################################
 
-# Output Policy Totals
+# Output Compliance Standards with Alerts
 
 print
 print('#################################################################################')
-print('All Open Alerts: By Policy Severity, IaC, and Remediation')
-print('#################################################################################')
-print
-print('Open Alerts: High-Severity\t%s'    % policy_alert_counts['alerts_open_high'])
-print('Open Alerts: Medium-Severity\t%s'  % policy_alert_counts['alerts_open_medium'])
-print('Open Alerts: Low-Severity\t%s'     % policy_alert_counts['alerts_open_low'])
-print('Open Alerts: With IaC\t%s'         % policy_alert_counts['alerts_open_shiftable'])
-print('Open Alerts: With Remediation\t%s' % policy_alert_counts['alerts_open_remediable'])
-
-# Output Compliance Standards with Alerts Totals
-
-print
-print('#################################################################################')
-print('Last Month: Open and Closed Alerts: By Compliance Standard')
+print('# SHEET: By Compliance Standard, Open and Closed Alerts, %s' % time_range_label)
 print('#################################################################################')
 print
 print('%s\t%s\t%s\t%s' % ('Compliance Standard', 'High-Severity Alert Count', 'Medium-Severity Alert Count', 'Low-Severity Alert Count'))																						
 for standard in sorted(alerts_by_compliance_standard):
     print('%s\t%s\t%s\t%s' % (standard, alerts_by_compliance_standard[standard]['high'], alerts_by_compliance_standard[standard]['medium'], alerts_by_compliance_standard[standard]['low']))
 
-# Output Policies with Alerts Totals
+# Output Policies with Alerts
 
 print
 print('#################################################################################')
-print('Last Month: Open and Closed Alerts: By Policy')
+print('# SHEET: By Policy, Open and Closed Alerts, %s' % time_range_label)
 print('#################################################################################')
 print
 print('%s\t%s\t%s\t%s\t%s\t%s\t%s' % ('policyName', 'policySeverity', 'policyType', 'policyShiftable', 'policyRemediable', 'alertCount', 'policyComplianceStandards') )
@@ -186,11 +201,11 @@ for policy in sorted(alerts_by_policy):
     policy_compliance_standards = ','.join(map(str, policies[policyId]['complianceStandards']))
     print('%s\t%s\t%s\t%s\t%s\t%s\t"%s"' % (policyName, policySeverity, policyType, policyShiftable, policyRemediable, alert_count, policy_compliance_standards))
 
-# Output Alert Totals
+# Output Alerts
 
 print
 print('#################################################################################')
-print('Last Month: Open and Closed Alerts: Totals')
+print('# SHEET: Alert Summary, Open and Closed Alerts, %s' % time_range_label)
 print('#################################################################################')
 print
 print("Alerts: Total\t%s"              % len(alert_list))

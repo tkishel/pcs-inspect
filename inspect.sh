@@ -2,29 +2,42 @@
 
 DEBUG=false
 
-#### BEGIN CONFIGURATION
+##########################################################################################
+# PREREQUISITES
+##########################################################################################
 
-# Prisma Cloud › Access URL: Prisma Cloud API URL
-API=https://xxx.prismacloud.io
+if ! type "jq" > /dev/null; then
+  error_and_exit "jq not installed or not in execution path, jq is required for script execution."
+fi
 
-# Prisma Cloud › Login Credentials: Access Key
-USERNAME=yyy
+##########################################################################################
+# CONFIGURATION
+##########################################################################################
 
-# Prisma Cloud › Login Credentials: Secret Key
-PASSWORD=zzz
+# Prisma Cloud API URL
+API=""
 
-# Customer Name, not a Cloud Account/Provider Organization
-ORGANIZATION=example
+# Prisma Cloud Login Credentials Access Key
+ACCESS_KEY=""
 
-# Optionally limit Alert query to one Cloud Account
-ORGANIZATION_ACCOUNT=
+# Prisma Cloud Login Credentials Secret Key
+SECRET_KEY=""
 
-# Logon
-PC_API_LOGIN_FILE=/tmp/prisma-api-login.json
+# Customer Name
+CUSTOMER_NAME=""
 
-#### END CONFIGURATION
+# Optionally limit the Alert API query to one Cloud Account
+CUSTOMER_ACCOUNT=""
 
-#### UTILITY FUNCTIONS
+# Used for the (relative) time range for the Alert API query.
+# https://api.docs.prismacloud.io/reference#time-range-model
+
+TIME_RANGE_AMOUNT=1
+TIME_RANGE_UNIT="month"
+
+##########################################################################################
+# UTILITY FUNCTIONS
+##########################################################################################
 
 debug() {
   if $DEBUG; then
@@ -41,15 +54,133 @@ error_and_exit() {
   exit 1
 }
 
-#### PREREQUISITES
+prisma_usage() {
+  echo ""
+  echo "USAGE:"
+  echo ""
+  echo "  ${0} <OPTIONS>"
+  echo ""
+  echo "OPTIONS:"
+  echo ""
+  echo "  --url, -u                Prisma Cloud API URL"
+  echo "  --access_key, -a         API Access Key"
+  echo "  --secret_key, -s         API Secret Key"
+  echo "  --customer, -c           Customer Name, used for output file names"
+  echo "  --cloud_account, -ca     (Optional) Cloud Account ID to limit the Alert query"
+  echo "  --time_range_amount, -ta (Optional) Time Range Amount [1, 2, 3] to limit the Alert query. Default: ${TIME_RANGE_AMOUNT}"
+  echo "  --time_range_unit, -tu   (Optional) Time Range Unit ['day', 'week', 'month', 'year'] to limit the Alert query. Default: '${TIME_RANGE_UNIT}'"
+  echo ""
+}
 
-if ! type "jq" > /dev/null; then
-  error_and_exit "jq not installed or not in execution path, jq is required for script execution."
+##########################################################################################
+# PARAMETERS
+##########################################################################################
+
+while (( "${#}" )); do
+  case "${1}" in
+    -u|--url)
+      if [ -n "${2}" ] && [ "${2:0:1}" != "-" ]; then
+        API=$2
+        shift 2
+      else
+        prisma_usage
+        error_and_exit "Argument for ${1} not specified"
+      fi
+      ;;
+    -a|--access_key)
+      if [ -n "${2}" ] && [ "${2:0:1}" != "-" ]; then
+        ACCESS_KEY=$2
+        shift 2
+      else
+        prisma_usage
+        error_and_exit "Argument for ${1} not specified"
+      fi
+      ;;
+    -s|--secret_key)
+      if [ -n "${2}" ] && [ "${2:0:1}" != "-" ]; then
+        SECRET_KEY=$2
+        shift 2
+      else
+        prisma_usage
+        error_and_exit "Argument for ${1} not specified"
+      fi
+      ;;
+    -c|--customer)
+      if [ -n "${2}" ] && [ "${2:0:1}" != "-" ]; then
+        CUSTOMER_NAME=$2
+        shift 2
+      else
+        prisma_usage
+        error_and_exit "Argument for ${1} not specified"
+      fi
+      ;;
+    -ca|--cloud_account)
+      if [ -n "${2}" ] && [ "${2:0:1}" != "-" ]; then
+        CUSTOMER_ACCOUNT=$2
+        shift 2
+      else
+        prisma_usage
+        error_and_exit "Argument for ${1} not specified"
+      fi
+      ;;
+    -ta|--time_range_amount)
+      if [ -n "${2}" ] && [ "${2:0:1}" != "-" ]; then
+        if ! is_numeric "${2}"; then
+          prisma_usage
+          error_and_exit "Argument for ${1} is not a number"
+        fi
+        TIME_RANGE_AMOUNT=$2
+        shift 2
+      else
+        prisma_usage
+        error_and_exit "Argument for ${1} not specified"
+      fi
+      ;;
+    -tu|--time_range_unit)
+      if [ -n "${2}" ] && [ "${2:0:1}" != "-" ]; then
+        TIME_RANGE_UNIT=$2
+        shift 2
+      else
+        prisma_usage
+        error_and_exit "Argument for ${1} not specified"
+      fi
+      ;;
+    -h|--help)
+      prisma_usage
+      exit
+      ;;
+    -*)
+      # Unsupported flags.
+      prisma_usage
+      error_and_exit "Unsupported flag ${1}"
+      ;;
+  esac
+done
+
+if [ -z "${API}" ]; then
+  error_and_exit "Prisma Cloud API URL not specified"
 fi
 
-#### MAIN
+if [ -z "${ACCESS_KEY}" ]; then
+  error_and_exit "API Access Key not specified"
+fi
 
-#### Use the active login, or login.
+if [ -z "${SECRET_KEY}" ]; then
+  error_and_exit "API Secret Key not specified"
+fi
+
+if [ -z "${CUSTOMER_NAME}" ]; then
+  error_and_exit "Customer Name not specified"
+fi
+
+# Logon Data
+PC_API_LOGIN_FILE=/tmp/prisma-api-login.json
+
+##########################################################################################
+# MAIN
+##########################################################################################
+
+# Use the active login, or login.
 #
 # TODO:
 #
@@ -65,7 +196,7 @@ if [ -z "${ACTIVELOGIN}" ]; then
   curl --fail --silent \
     --request POST "${API}/login" \
     --header "Content-Type: application/json" \
-    --data "{\"username\":\"${USERNAME}\",\"password\":\"${PASSWORD}\"}" \
+    --data "{\"username\":\"${ACCESS_KEY}\",\"password\":\"${SECRET_KEY}\"}" \
     --output "${PC_API_LOGIN_FILE}"
 fi
 
@@ -88,32 +219,32 @@ fi
 
 debug "Token: ${TOKEN}"
 
-#### Policies
+# Policies
 
 curl -s --request GET \
   --url "${API}/policy?policy.enabled=true" \
   --header 'Accept: */*' \
   --header "x-redlock-auth: ${TOKEN}" \
-  | jq > ${ORGANIZATION}-policies.txt
+  | jq > ${CUSTOMER_NAME}-policies.txt
 
-#### Alerts (Last Month)
+# Alerts
 
-if [ -z "${ORGANIZATION_ACCOUNT}" ]; then
+if [ -z "${CUSTOMER_ACCOUNT}" ]; then
   curl -s --request POST \
     --url "${API}/alert" \
     --header 'Accept: */*' \
     --header 'Content-Type: application/json; charset=UTF-8' \
     --header "x-redlock-auth: ${TOKEN}" \
-    --data "{\"timeRange\":{\"value\":{\"unit\":\"month\",\"amount\":1},\"type\":\"relative\"}}" \
-    | jq > ${ORGANIZATION}-alerts.txt
+    --data "{\"timeRange\":{\"value\":{\"unit\":\"${TIME_RANGE_UNIT}\",\"amount\":${TIME_RANGE_AMOUNT}},\"type\":\"relative\"}}" \
+    | jq > "${CUSTOMER_NAME}-alerts.txt"
 else
   curl -s --request POST \
     --url "${API}/alert" \
     --header 'Accept: */*' \
     --header 'Content-Type: application/json; charset=UTF-8' \
     --header "x-redlock-auth: ${TOKEN}" \
-    --data "{\"timeRange\":{\"value\":{\"unit\":\"month\",\"amount\":1},\"type\":\"relative\"},\"filters\":[{\"name\":\"cloud.accountId\",\"value\":\"${ORGANIZATION_ACCOUNT}\",\"operator\":\"=\"}]}" \
-    | jq > ${ORGANIZATION}-alerts.txt
+    --data "{\"timeRange\":{\"value\":{\"unit\":\"${TIME_RANGE_UNIT}\",\"amount\":${TIME_RANGE_AMOUNT}},\"type\":\"relative\"},\"filters\":[{\"name\":\"cloud.accountId\",\"value\":\"${CUSTOMER_ACCOUNT}\",\"operator\":\"=\"}]}" \
+    | jq > "${CUSTOMER_NAME}-alerts.txt"
 fi
 
 echo
