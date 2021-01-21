@@ -62,6 +62,16 @@ if not os.path.isfile(alert_file):
 # Counters and Structures.
 ##########################################################################################
 
+policy_counts = {
+    'high':        0,
+    'medium':      0,
+    'low':         0,
+    'anomaly':     0,
+    'audit_event': 0,
+    'config':      0,
+    'network':     0,
+}
+
 alert_counts = {
     'open':             0,
     'resolved':         0,
@@ -77,7 +87,6 @@ alert_counts = {
 policies = {}
 alerts_by_compliance_standard = {}
 alerts_by_policy = {}
-
 
 ##########################################################################################
 # Loop through all Policies and collect the details of each Policy.
@@ -144,11 +153,15 @@ for alert in alert_list:
     # Transform alerts from alert_list to alerts_by_policy, and initialize Alert Count (to avoid an error with += when the variable is undefined).
     if not alerts_by_policy.has_key(policyName):
         alerts_by_policy[policyName] = {'policyId': policyId, 'alertCount': 0}
-    # Increment Compliance Standards Alert Count
+    # Increment Alert Count for each associated Compliance Standard
     for standard in policies[policyId]['complianceStandards']:
         alerts_by_compliance_standard[standard][policies[policyId]['policySeverity']] += 1
-    # Increment Policy Alert Count
+    # Increment Alert Count for associated Policy
     alerts_by_policy[policyName]['alertCount'] += 1
+    # Increment Policies by Severity
+    policy_counts[policies[policyId]['policySeverity']] += 1
+    # Increment Policies by Type
+    policy_counts[policies[policyId]['policyType']] += 1
     # Increment Alerts by Status
     alert_counts[alert['status']] += 1
     # Increment Alerts Closed by Reason
@@ -165,7 +178,6 @@ for alert in alert_list:
 	# Increment Alerts with Remediation
     if alert['policy']['remediable']:
         alert_counts['remediable'] += 1
-
 
 ##########################################################################################
 # Output tables and totals.
@@ -201,22 +213,31 @@ for policy in sorted(alerts_by_policy):
     policy_compliance_standards = ','.join(map(str, policies[policyId]['complianceStandards']))
     print('%s\t%s\t%s\t%s\t%s\t%s\t"%s"' % (policyName, policySeverity, policyType, policyShiftable, policyRemediable, alert_count, policy_compliance_standards))
 
-# Output Alerts
+# Output Summary
 
 print
 print('#################################################################################')
-print('# SHEET: Alert Summary, Open and Closed Alerts, %s' % time_range_label)
+print('# SHEET: Summary, Open and Closed Alerts, %s' % time_range_label)
 print('#################################################################################')
+print
+print("Compliance Standard with Alerts: Total\t%s" % len(alerts_by_compliance_standard))
+print
+print("Policies with Alerts: Total\t%s"            % len(alerts_by_policy))
+print("Policies with Alerts: High-Severity\t%s"    % policy_counts['high'])
+print("Policies with Alerts: Medium-Severity\t%s"  % policy_counts['medium'])
+print("Policies with Alerts: Low-Severity\t%s"     % policy_counts['low'])
+print("Policies with Alerts: Anomaly\t%s"          % policy_counts['anomaly'])
+print("Policies with Alerts: Config\t%s"           % policy_counts['config'])
+print("Policies with Alerts: Network\t%s"          % policy_counts['network'])
 print
 print("Alerts: Total\t%s"              % len(alert_list))
 print("Alerts: Open\t%s"               % alert_counts['open'])
 print("Alerts: Resolved\t%s"           % alert_counts['resolved'])
 print("Alerts: Resolved by Delete\t%s" % alert_counts['resolved_deleted'])
 print("Alerts: Resolved by Update\t%s" % alert_counts['resolved_updated'])
-print("Alerts: Resolved\t%s"           % alert_counts['resolved'])
 print("Alerts: High-Severity\t%s"      % alert_counts['resolved_high'])
 print("Alerts: Medium-Severity\t%s"    % alert_counts['resolved_medium'])
 print("Alerts: Low-Severity\t%s"       % alert_counts['resolved_low'])
-print("Alerts: With IaC\t%s"           % alert_counts['shiftable'])
-print("Alerts: With Remediation\t%s"   % alert_counts['remediable'])
+print("Alerts: with IaC\t%s"           % alert_counts['shiftable'])
+print("Alerts: with Remediation\t%s"   % alert_counts['remediable'])
 print
