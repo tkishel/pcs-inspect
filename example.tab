@@ -181,12 +181,6 @@ Unusual user activity	high	anomaly	False	False	146	"GDPR,HIPAA,MITRE ATT&CK [Bet
 Compliance Standard with Alerts: Total	22
 
 Policies with Alerts: Total	141
-Policies with Alerts: High-Severity	1429
-Policies with Alerts: Medium-Severity	35143
-Policies with Alerts: Low-Severity	3531
-Policies with Alerts: Anomaly	161
-Policies with Alerts: Config	38908
-Policies with Alerts: Network	1034
 
 Alerts: Total	40103
 Alerts: Open	34028
@@ -196,6 +190,9 @@ Alerts: Resolved by Update	1759
 Alerts: High-Severity	1429
 Alerts: Medium-Severity	35143
 Alerts: Low-Severity	3531
+Alerts: Anomaly	161
+Alerts: Config	38908
+Alerts: Network	1034
 Alerts: with IaC	1086
 Alerts: with Remediation	596
 

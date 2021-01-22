@@ -75,6 +75,8 @@ policy_counts = {
     'network':     0,
 }
 
+# Duplication between the above and below intended for future error checking.
+
 alert_counts = {
     'open':             0,
     'resolved':         0,
@@ -226,13 +228,6 @@ print
 print("Compliance Standard with Alerts: Total\t%s" % len(alerts_by_compliance_standard))
 print
 print("Policies with Alerts: Total\t%s"            % len(alerts_by_policy))
-print("Policies with Alerts: High-Severity\t%s"    % policy_counts['high'])
-print("Policies with Alerts: Medium-Severity\t%s"  % policy_counts['medium'])
-print("Policies with Alerts: Low-Severity\t%s"     % policy_counts['low'])
-print("Policies with Alerts: Anomaly\t%s"          % policy_counts['anomaly'])
-print("Policies with Alerts: Config\t%s"           % policy_counts['config'])
-print("Policies with Alerts: Network\t%s"          % policy_counts['network'])
-# print("Policies with Alerts: Audit\t%s"          % policy_counts['audit_event']) # See Note above.
 print
 print("Alerts: Total\t%s"              % len(alert_list))
 print("Alerts: Open\t%s"               % alert_counts['open'])
@@ -242,6 +237,10 @@ print("Alerts: Resolved by Update\t%s" % alert_counts['resolved_updated'])
 print("Alerts: High-Severity\t%s"      % alert_counts['resolved_high'])
 print("Alerts: Medium-Severity\t%s"    % alert_counts['resolved_medium'])
 print("Alerts: Low-Severity\t%s"       % alert_counts['resolved_low'])
+print("Alerts: Anomaly\t%s"            % policy_counts['anomaly'])
+print("Alerts: Config\t%s"             % policy_counts['config'])
+print("Alerts: Network\t%s"            % policy_counts['network'])
+# print("Alerts: Audit\t%s"              % policy_counts['audit_event']) # See Note above.
 print("Alerts: with IaC\t%s"           % alert_counts['shiftable'])
 print("Alerts: with Remediation\t%s"   % alert_counts['remediable'])
 print
