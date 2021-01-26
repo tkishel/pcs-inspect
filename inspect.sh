@@ -35,6 +35,9 @@ CUSTOMER_ACCOUNT=""
 TIME_RANGE_AMOUNT=1
 TIME_RANGE_UNIT="month"
 
+# Increase if necessary.
+CURL_TIMEOUT=300
+
 ##########################################################################################
 # UTILITY FUNCTIONS
 ##########################################################################################
@@ -157,6 +160,7 @@ while (( "${#}" )); do
   esac
 done
 
+
 if [ -z "${API}" ]; then
   error_and_exit "Prisma Cloud API URL not specified"
 fi
@@ -174,31 +178,19 @@ if [ -z "${CUSTOMER_NAME}" ]; then
 fi
 
 # Logon Data
-PC_API_LOGIN_FILE=/tmp/prisma-api-login.json
+PC_API_LOGIN_FILE=$(mktemp /tmp/prisma-api-login.XXXXXXXXX)
 
 ##########################################################################################
 # MAIN
 ##########################################################################################
 
-# Use the active login, or login.
-#
-# TODO:
-#
-# The login token is valid for 10 minutes.
-# Refresh instead of replace, if it exists, as per:
-# https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/access-the-prisma-cloud-api.html
-
 echo "Logging on and creating an API Token"
 
-ACTIVELOGIN=$(find "${PC_API_LOGIN_FILE}" -mmin -10 2>/dev/null)
-if [ -z "${ACTIVELOGIN}" ]; then
-  rm -f "${PC_API_LOGIN_FILE}"
-  curl --fail --silent \
-    --request POST "${API}/login" \
-    --header "Content-Type: application/json" \
-    --data "{\"username\":\"${ACCESS_KEY}\",\"password\":\"${SECRET_KEY}\"}" \
-    --output "${PC_API_LOGIN_FILE}"
-fi
+curl --fail --silent \
+  --request POST "${API}/login" \
+  --header "Content-Type: application/json" \
+  --data "{\"username\":\"${ACCESS_KEY}\",\"password\":\"${SECRET_KEY}\"}" \
+  --output "${PC_API_LOGIN_FILE}"
 
 if [ $? -ne 0 ]; then
   error_and_exit "API Login Failed"
@@ -221,7 +213,10 @@ debug "Token: ${TOKEN}"
 
 # Policies
 
+echo "Querying Policies (Timeout ${CURL_TIMEOUT} Seconds)"
+
 curl -s --request GET \
+  --max-time "${CURL_TIMEOUT}" \
   --url "${API}/policy?policy.enabled=true" \
   --header 'Accept: */*' \
   --header "x-redlock-auth: ${TOKEN}" \
@@ -229,8 +224,11 @@ curl -s --request GET \
 
 # Alerts
 
+echo "Querying Alerts (Timeout ${CURL_TIMEOUT} Seconds)"
+
 if [ -z "${CUSTOMER_ACCOUNT}" ]; then
   curl -s --request POST \
+    --max-time "${CURL_TIMEOUT}" \
     --url "${API}/alert" \
     --header 'Accept: */*' \
     --header 'Content-Type: application/json; charset=UTF-8' \
@@ -239,6 +237,7 @@ if [ -z "${CUSTOMER_ACCOUNT}" ]; then
     | jq > "${CUSTOMER_NAME}-alerts.txt"
 else
   curl -s --request POST \
+    --max-time "${CURL_TIMEOUT}" \
     --url "${API}/alert" \
     --header 'Accept: */*' \
     --header 'Content-Type: application/json; charset=UTF-8' \
@@ -247,4 +246,10 @@ else
     | jq > "${CUSTOMER_NAME}-alerts.txt"
 fi
 
+# Token
+
+rm -f "${PC_API_LOGIN_FILE}"
+
+echo
+echo "Done: Please review ${CUSTOMER_NAME}-policies.txt and ${CUSTOMER_NAME}-alerts.txt"
 echo
