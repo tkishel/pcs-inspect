@@ -80,15 +80,9 @@ Current (Licensable) Resource Count: 515
 Historical (Licensable) Resource Count:
 
 {'Date': '2021-01-26', 'Resources': '1'}
-{'Date': '2021-01-27', 'Resources': '552'}
-{'Date': '2021-01-27', 'Resources': '552'}
-{'Date': '2021-01-27', 'Resources': '515'}
-{'Date': '2021-01-27', 'Resources': '515'}
 {'Date': '2021-01-27', 'Resources': '104'}
-{'Date': '2021-01-27', 'Resources': '104'}
-{'Date': '2021-01-27', 'Resources': '515'}
 
 NOTIFY: Spike !!!
-NOTIFY: Current resource count (515) is 200 percent greater that the mean resource count (168).
-NOTIFY: This notification is triggered by a delta greater than 10 percent, measured over (17) samples.
+NOTIFY: Current resource count (515) is 800 percent greater that the mean resource count (52).
+NOTIFY: This notification is triggered by a delta greater than 10 percent, measured over (2) samples.
 ```
