@@ -92,8 +92,8 @@ def notify(percentage_change, current_usage_count, resource_count_mean, resource
         increase_or_decrease = 'less'
     print
     print('NOTIFY: %s !!!' % spike_or_drop) 
-    print('NOTIFY: Current resource count (%s) is %s percent %s that the mean resource count (%s).' % (current_usage_count, percentage_change, increase_or_decrease, resource_count_mean))
-    print('NOTIFY: This notification is triggered by a delta greater than %s percent, measured over (%s) samples.' % (PERCENT_CHANGE_TRIGGER, resource_count_count))
+    print('NOTIFY: Current resource count (%s) is %s percent %s than the mean resource count (%s).' % (current_usage_count, percentage_change, increase_or_decrease, resource_count_mean))
+    print('NOTIFY: This notification is triggered by a delta greater than %s percent, measured over %s samples.' % (PERCENT_CHANGE_TRIGGER, resource_count_count))
     print
 
 ##########################################################################################
