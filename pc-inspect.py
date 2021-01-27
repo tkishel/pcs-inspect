@@ -3,67 +3,190 @@
 import argparse
 import json
 import os
+import requests
+from requests.exceptions import RequestException
 import sys
 
 ##########################################################################################
 # Configuration
 ##########################################################################################
 
-pc_parser = argparse.ArgumentParser(prog='pcsinspect')
+pc_parser = argparse.ArgumentParser(description='This script collects or processes Policies and Alerts.', prog=os.path.basename(__file__))
 
 pc_parser.add_argument(
-    '-c',
-    '--customer',
+    '-c', '--customer_name',
+    type=str, required=True,
+    help='*Required* Customer Name, used for Alert and Policy files')
+
+pc_parser.add_argument('-m', '--mode',
+    type=str, required=True, choices=['collect', 'process'],
+    help="*Required* Mode: collect Policies and Alerts, or process collected data.")
+
+pc_parser.add_argument('-u', '--url',
     type=str,
-    required=True,
-    help='*Required* Customer Name, used for input policy and alert file names')
+    help="(Required with '--mode collect') Prisma Cloud API URL")
 
-# https://api.docs.prismacloud.io/reference#time-range-model
-
-pc_parser.add_argument(
-    '-ta',
-    '--time_range_amount',
-    type=int,
-    default=1,
-    choices=[1, 2, 3],
-    help="(Optional) Time Range Amount of the data in the alert file. Default: 1")
-
-pc_parser.add_argument(
-    '-tu',
-    '--time_range_unit',
+pc_parser.add_argument('-a', '--access_key',
     type=str,
-    default='month',
-    choices=['day', 'week', 'month', 'year'],
-    help="(Optional) Time Range Unit of the data in the alert file. Default: 'month'")
+    help="(Required with '--mode collect') API Access Key")
+
+pc_parser.add_argument('-s', '--secret_key',
+    type=str,
+    help="(Required with '--mode collect') API Secret Key")
+
+pc_parser.add_argument('-ca', '--cloud_account',
+    type=str,
+    help='(Optional) Cloud Account ID to limit the Alert query')
+
+pc_parser.add_argument('-ta', '--time_range_amount',
+    type=int, default=1, choices=[1, 2, 3],
+    help="(Optional) Time Range Amount to limit the Alert query. Default: 1")
+
+pc_parser.add_argument('-tu', '--time_range_unit',
+    type=str, default='month', choices=['day', 'week', 'month', 'year'],
+    help="(Optional) Time Range Unit to limit the Alert query. Default: 'month'")
+
+pc_parser.add_argument('-d', '--debug',
+    action='store_true',
+    help='(Optional) Enable debugging.')
 
 args = pc_parser.parse_args()
 
-customer = args.customer
-policy_file = '%s-policies.txt' % customer
-alert_file = '%s-alerts.txt' % customer
-time_range_label = 'Time Range - Past %s %s' % (args.time_range_amount, args.time_range_unit.capitalize()) 
+####
 
-# Use inspect.sh or the commented curl commands in this script to create the policy and alert files.
+DEBUG_MODE = args.debug
+
+RUN_MODE = args.mode
+PRISMA_API_ENDPOINT = args.url        # or os.environ.get('PRISMA_API_ENDPOINT')
+PRISMA_ACCESS_KEY   = args.access_key # or os.environ.get('PRISMA_ACCESS_KEY')
+PRISMA_SECRET_KEY   = args.secret_key # or os.environ.get('PRISMA_SECRET_KEY')
+PRISMA_API_HEADERS = {
+    'Accept': 'application/json; charset=UTF-8',
+    'Content-Type': 'application/json'
+}
+PRISMA_API_REQUEST_TIMEOUTS = (30, 300) # (CONNECT, READ)
+CUSTOMER_NAME = args.customer_name
+CLOUD_ACCOUNT_ID = args.cloud_account
+POLICY_FILE = '%s-policies.txt' % CUSTOMER_NAME
+ALERT_FILE = '%s-alerts.txt' % CUSTOMER_NAME
+TIME_RANGE_AMOUNT = args.time_range_amount
+TIME_RANGE_UNIT = args.time_range_unit
+TIME_RANGE_LABEL = 'Time Range - Past %s %s' % (TIME_RANGE_AMOUNT, TIME_RANGE_UNIT.capitalize()) 
+
+##########################################################################################
+# Utilities.
+##########################################################################################
+
+def make_api_call(method, url, requ_data = None):
+    try:
+        requ = requests.Request(method, url, data = requ_data, headers = PRISMA_API_HEADERS)
+        prep = requ.prepare()
+        sess = requests.Session()
+        resp = sess.send(prep, timeout=(PRISMA_API_REQUEST_TIMEOUTS))
+        if resp.status_code == 200:
+            return resp.content
+        else:
+            return {}
+    except RequestException as e:
+        print('Error with API: %s: %s' % (url, str(e)))
+        sys.exit()
+
+####
+
+def get_prisma_login():
+    request_data = json.dumps({
+        "username": PRISMA_ACCESS_KEY,
+        "password": PRISMA_SECRET_KEY
+    })
+    api_response = make_api_call('POST', '%s/login' % PRISMA_API_ENDPOINT, request_data)
+    resp_data = json.loads(api_response)
+    token = resp_data.get('token')
+    if not token:
+        print('Error with API Login: %s' % resp_data)
+        sys.exit()
+    return token
+
+####
+
+def get_policies():
+    api_response = make_api_call('GET', '%s/policy?policy.enabled=true' % PRISMA_API_ENDPOINT)
+    policy_file = open(POLICY_FILE, 'w') 
+    policy_file.write(api_response)
+    policy_file.close()
+
+####
+
+def get_alerts():
+    body_params = {"timeRange": {"value": {"unit":"%s" % TIME_RANGE_UNIT, "amount":TIME_RANGE_AMOUNT}, "type":"relative"}}
+    if CLOUD_ACCOUNT_ID:
+        body_params["filters"] = [{"name":"cloud.accountId","value":"%s" % CLOUD_ACCOUNT_ID, "operator":"="}]
+    request_data = json.dumps(body_params)
+    api_response = make_api_call('POST', '%s/alert' % PRISMA_API_ENDPOINT, request_data)
+    alert_file = open(ALERT_FILE, 'w') 
+    alert_file.write(api_response)
+    alert_file.close()
+
+##########################################################################################
+##########################################################################################
+# Collect mode: Query the API and write the results to files.
+##########################################################################################
+##########################################################################################
+
+if RUN_MODE == 'collect':
+    if not PRISMA_API_ENDPOINT:
+        print("Error: '--url' is required with '--mode input'")
+        sys.exit(0)
+    if not PRISMA_ACCESS_KEY:
+        print("Error: '--access_key' is required with '--mode input'")
+        sys.exit(0)
+    if not PRISMA_SECRET_KEY:
+        print("Error: '--secret_key' is required with '--mode input'")
+        sys.exit(0)
+
+    print('Generating Prisma Cloud API Token')
+    token = get_prisma_login()
+    if DEBUG_MODE:
+        print
+        print(token)
+        print
+    PRISMA_API_HEADERS['x-redlock-auth'] = token
+    print
+
+    print('Querying Policies')
+    get_policies()
+    print('Results saved as: %s' % POLICY_FILE)
+    print
+
+    print('Querying Alerts')
+    get_alerts()
+    print('Results saved as: %s' % ALERT_FILE)
+    print
+
+    print("Run '%s --customer_name %s --mode process' to process the collected data." % (os.path.basename(__file__), CUSTOMER_NAME))
+    print("To save the processed data to a file, redirect the above command by adding ' > {name}-summary.tab'".format(name = CUSTOMER_NAME))
+    sys.exit(0)
+
+##########################################################################################
+##########################################################################################
+# Inspect mode: Read the result files and output summary results.
+##########################################################################################
+##########################################################################################
 
 ##########################################################################################
 # Validation.
 ##########################################################################################
 
-if not os.path.isfile(policy_file):
-    print('Error: Policy file does not exist: %' % policy_file)
+if not os.path.isfile(POLICY_FILE):
+    print('Error: Policy file does not exist: %' % POLICY_FILE)
     sys.exit(1)
 
-if not os.path.isfile(alert_file):
-    print('Error: Alert file does not exist: %' % alert_file)
+if not os.path.isfile(ALERT_FILE):
+    print('Error: Alert file does not exist: %' % ALERT_FILE)
     sys.exit(1)
-
 
 ##########################################################################################
 # Counters and Structures.
 ##########################################################################################
-
-# Note it appears that `audit_event` alerts are returned from the /policy endpoint, not from the /alert endpoint.
-# The `policy_counts` structure counts results from the /alert endpoint. So, included only for reference.
 
 policy_counts = {
     'high':        0,
@@ -97,15 +220,7 @@ alerts_by_policy = {}
 # Loop through all Policies and collect the details of each Policy.
 ##########################################################################################
 
-# Example API request to generate policies.txt:
-#
-# curl -s --request GET \
-#   --url "${API}/policy?policy.enabled=true" \
-#   --header 'Accept: */*' \
-#   --header "x-redlock-auth: ${TOKEN}" \
-#   | jq > ${CUSTOMER_NAME}-policies.txt
-
-with open(policy_file, 'r') as f:
+with open(POLICY_FILE, 'r') as f:
   policy_list = json.load(f)
 
 for policy in policy_list:
@@ -138,18 +253,8 @@ for policy in policy_list:
 # Loop through all Alerts and collect the details of each Alert.
 # Some details come from the Alert, some from the associated Policy.
 ##########################################################################################
-
-# Example API request to generate alerts.txt:
-#
-# curl -s --request POST \
-#   --url "${API}/alert" \
-#   --header 'Accept: */*' \
-#   --header 'Content-Type: application/json; charset=UTF-8' \
-#   --header "x-redlock-auth: ${TOKEN}" \
-#   --data "{\"timeRange\":{\"value\":{\"unit\":\"${TIME_RANGE_UNIT}\",\"amount\":${TIME_RANGE_AMOUNT}},\"type\":\"relative\"}}" \
-#   | jq > ${CUSTOMER_NAME}-alerts.txt
   
-with open(alert_file, 'r') as f:
+with open(ALERT_FILE, 'r') as f:
   alert_list = json.load(f)
 
 for alert in alert_list:
@@ -192,7 +297,7 @@ for alert in alert_list:
 
 print
 print('#################################################################################')
-print('# SHEET: By Compliance Standard, Open and Closed Alerts, %s' % time_range_label)
+print('# SHEET: By Compliance Standard, Open and Closed Alerts, %s' % TIME_RANGE_LABEL)
 print('#################################################################################')
 print
 print('%s\t%s\t%s\t%s' % ('Compliance Standard', 'High-Severity Alert Count', 'Medium-Severity Alert Count', 'Low-Severity Alert Count'))																						
@@ -203,7 +308,7 @@ for standard in sorted(alerts_by_compliance_standard):
 
 print
 print('#################################################################################')
-print('# SHEET: By Policy, Open and Closed Alerts, %s' % time_range_label)
+print('# SHEET: By Policy, Open and Closed Alerts, %s' % TIME_RANGE_LABEL)
 print('#################################################################################')
 print
 print('%s\t%s\t%s\t%s\t%s\t%s\t%s' % ('policyName', 'policySeverity', 'policyType', 'policyShiftable', 'policyRemediable', 'alertCount', 'policyComplianceStandards') )
@@ -222,7 +327,7 @@ for policy in sorted(alerts_by_policy):
 
 print
 print('#################################################################################')
-print('# SHEET: Summary, Open and Closed Alerts, %s' % time_range_label)
+print('# SHEET: Summary, Open and Closed Alerts, %s' % TIME_RANGE_LABEL)
 print('#################################################################################')
 print
 print("Compliance Standard with Alerts: Total\t%s" % len(alerts_by_compliance_standard))
@@ -240,7 +345,9 @@ print("Alerts: Low-Severity\t%s"       % alert_counts['resolved_low'])
 print("Alerts: Anomaly\t%s"            % policy_counts['anomaly'])
 print("Alerts: Config\t%s"             % policy_counts['config'])
 print("Alerts: Network\t%s"            % policy_counts['network'])
-# print("Alerts: Audit\t%s"              % policy_counts['audit_event']) # See Note above.
+# Note it appears that `audit_event` alerts are returned from the /policy endpoint, not from the /alert endpoint.
+# The `policy_counts` structure counts results from the /alert endpoint. So, included only for reference.
+# print("Alerts: Audit\t%s"              % policy_counts['audit_event'])
 print("Alerts: with IaC\t%s"           % alert_counts['shiftable'])
 print("Alerts: with Remediation\t%s"   % alert_counts['remediable'])
 print
