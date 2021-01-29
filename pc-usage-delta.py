@@ -36,14 +36,14 @@ def notify(percentage_change, current_usage_count, resource_count_mean, resource
 
 def configure_defaults():
     result = {}
-    result['HISTORICAL_DATA_FILE'] = '~/pcs-usage-history.csv'
+    result['HISTORICAL_DATA_FILE'] = '~/pc-usage-history.csv'
     result['HISTORICAL_DATA_TO_RETAIN'] = 30
     result['PERCENT_CHANGE_TRIGGER'] = 10
     result['TIME_RANGE_AMOUNT'] = 1
     result['TIME_RANGE_UNIT'] = 'month'
     result['LAMBDA_HISTORICAL_DATA_FILE'] = '/tmp/pcs-usage-history.csv'
-    result['LAMBDA_S3_BUCKET'] = 'pcs-usage-delta'
-    result['LAMBDA_S3_OBJECT'] = 'pcs-usage-history.csv'
+    result['LAMBDA_S3_BUCKET'] = 'pc_usage_delta'
+    result['LAMBDA_S3_OBJECT'] = 'pc-usage-history.csv'
     return result
 
 def command_line_configure():
