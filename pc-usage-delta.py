@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import boto3
 import csv
 from datetime import datetime, timedelta
 import json
@@ -40,6 +41,9 @@ def configure_defaults():
     result['PERCENT_CHANGE_TRIGGER'] = 10
     result['TIME_RANGE_AMOUNT'] = 1
     result['TIME_RANGE_UNIT'] = 'month'
+    result['LAMBDA_HISTORICAL_DATA_FILE'] = '/tmp/pcs-usage-history.csv'
+    result['LAMBDA_S3_BUCKET'] = 'pcs-usage-delta'
+    result['LAMBDA_S3_OBJECT'] = 'pcs-usage-history.csv'
     return result
 
 def command_line_configure():
@@ -111,8 +115,10 @@ def lambda_configure():
     }
     result['PRISMA_API_REQUEST_TIMEOUTS'] = (30, 300) # (CONNECT, READ)
     result['CLOUD_ACCOUNT_ID'] = env_var_or_none('CLOUD_ACCOUNT_ID')
-    result['HISTORICAL_DATA_FILE'] = '/tmp/TODO'
+    result['HISTORICAL_DATA_FILE'] = defaults['LAMBDA_HISTORICAL_DATA_FILE']
     result['HISTORICAL_DATA_TO_RETAIN'] = env_var_or_none('HISTORICAL_DATA_TO_RETAIN') or defaults['HISTORICAL_DATA_TO_RETAIN']
+    result['LAMBDA_S3_BUCKET'] = defaults['LAMBDA_S3_BUCKET']
+    result['LAMBDA_S3_OBJECT'] = defaults['LAMBDA_S3_OBJECT']
     result['PERCENT_CHANGE_TRIGGER'] = env_var_or_none('PERCENT_CHANGE_TRIGGER') or defaults['PERCENT_CHANGE_TRIGGER']
     result['TIME_RANGE_AMOUNT'] = env_var_or_none('TIME_RANGE_AMOUNT') or defaults['TIME_RANGE_AMOUNT']
     result['TIME_RANGE_UNIT'] = env_var_or_none('TIME_RANGE_UNIT') or defaults['TIME_RANGE_UNIT']
@@ -188,6 +194,31 @@ def get_cloud_account_usage(config, cloud_account):
 
 ####
 
+def lambda_download_s3(config):
+    bucket_name = config['LAMBDA_S3_BUCKET']
+    object_name = config['LAMBDA_S3_OBJECT']
+    s3_resource = boto3.resource('s3')
+    try:
+        s3_resource.Object(bucket_name, object_name).load()
+    except:
+        return False
+    s3_client = boto3.client('s3')
+    results = s3_client.download_file(bucket_name, object_name, config['HISTORICAL_DATA_FILE'], )
+    print(results['ResponseMetadata'])
+    return results['ResponseMetadata']['HTTPStatusCode'] == 200
+
+####
+
+def lambda_upload_s3(config):
+    bucket_name = config['LAMBDA_S3_BUCKET']
+    object_name = config['LAMBDA_S3_OBJECT']
+    s3_client = boto3.client('s3')
+    results = s3_client.upload_file(config['HISTORICAL_DATA_FILE'], bucket_name, object_name)
+    print(results['ResponseMetadata'])
+    return results['ResponseMetadata']['HTTPStatusCode'] == 200
+
+####
+
 # The following allows for differentiating between CSPM resources and CWP workloads.
 # Alternatives: data['total'] or data['stats']['stats']['total'] or data['items'][n]['resourceTypeCount']['total']
 
@@ -216,10 +247,10 @@ def mean_of_list(usage_data):
     return (sum(usage_data) / float(len(usage_data)))
 
 ##########################################################################################
-# Main.
+# Main Handler.
 ##########################################################################################
 
-def handler(config):
+def common_handler(config):
     current_usage_count = 0
     field_names = ['Date', 'Resources']
     historical_data = []
@@ -308,12 +339,20 @@ def handler(config):
 
 def lambda_handler(event, context): 
     config = lambda_configure()
-    handler(config)
-    return {
-        'statusCode': 200,
-        'body': config['PRISMA_API_ENDPOINT']
-    }
+    lambda_download_s3(config)
+    common_handler(config)
+    result = lambda_upload_s3(config)
+    if result:
+        return {
+            'statusCode': 200,
+            'body': 'Success'
+       }
+    else:
+        return {
+            'statusCode': 400,
+            'body': 'Error'
+       }
 
 if __name__ == "__main__":
     config = command_line_configure()
-    handler(config)
+    common_handler(config)
