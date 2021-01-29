@@ -24,11 +24,11 @@ def notify(percentage_change, current_usage_count, resource_count_mean, resource
     else:
         spike_or_drop = 'Drop'
         increase_or_decrease = 'less'
-    print()
-    print('NOTIFY: %s !!!' % spike_or_drop) 
-    print('NOTIFY: Current resource count (%s) is %s percent %s than the mean resource count (%s).' % (current_usage_count, percentage_change, increase_or_decrease, resource_count_mean))
-    print('NOTIFY: This notification is triggered by a delta greater than %s percent, measured over %s samples.' % (percent_change_trigger, resource_count_count))
-    print()
+    output()
+    output('NOTIFY: %s !!!' % spike_or_drop) 
+    output('NOTIFY: Current resource count (%s) is %s percent %s than the mean resource count (%s).' % (current_usage_count, percentage_change, increase_or_decrease, resource_count_mean))
+    output('NOTIFY: This notification is triggered by a delta greater than %s percent, measured over %s samples.' % (percent_change_trigger, resource_count_count))
+    output()
 
 ##########################################################################################
 # Configuration.
@@ -106,7 +106,6 @@ def lambda_configure():
     result = {}
     result['DEBUG_MODE'] = (env_var_or_none('DEBUG_MODE') == 'true')
     result['PRISMA_API_ENDPOINT'] = env_var_or_none('PRISMA_API_ENDPOINT')
-    print('TJK %s' % result['PRISMA_API_ENDPOINT'])
     result['PRISMA_ACCESS_KEY']   = env_var_or_none('PRISMA_ACCESS_KEY')
     result['PRISMA_SECRET_KEY']   = env_var_or_none('PRISMA_SECRET_KEY')
     result['PRISMA_API_HEADERS'] = {
@@ -123,18 +122,20 @@ def lambda_configure():
     result['TIME_RANGE_AMOUNT'] = env_var_or_none('TIME_RANGE_AMOUNT') or defaults['TIME_RANGE_AMOUNT']
     result['TIME_RANGE_UNIT'] = env_var_or_none('TIME_RANGE_UNIT') or defaults['TIME_RANGE_UNIT']
     if not result['PRISMA_API_ENDPOINT']:
-        print('Error: specify PRISMA_API_ENDPOINT')
+        output('Error: specify PRISMA_API_ENDPOINT')
         sys.exit()
     if not result['PRISMA_ACCESS_KEY']:
-        print('Error: specify PRISMA_ACCESS_KEY')
+        output('Error: specify PRISMA_ACCESS_KEY')
         sys.exit()
     if not result['PRISMA_SECRET_KEY']:
-        print('Error: specify PRISMA_SECRET_KEY')
+        output('Error: specify PRISMA_SECRET_KEY')
         sys.exit()
     if not result['PRISMA_API_ENDPOINT']:
-        print('Error: specify PRISMA_API_ENDPOINT')
+        output('Error: specify PRISMA_API_ENDPOINT')
         sys.exit()
     return result
+
+####
 
 def env_var_or_none(var_name):
     return os.environ.get(var_name)
@@ -165,7 +166,7 @@ def get_prisma_login(config):
     resp_data = json.loads(api_response)
     token = resp_data.get('token')
     if not token:
-        print('Error with API Login: %s' % resp_data)
+        output('Error with API Login: %s' % resp_data)
         sys.exit()
     return token
 
@@ -199,13 +200,16 @@ def lambda_download_s3(config):
     object_name = config['LAMBDA_S3_OBJECT']
     s3_resource = boto3.resource('s3')
     try:
-        s3_resource.Object(bucket_name, object_name).load()
-    except:
+        pcs_delta_bucket = s3_resource.Bucket(bucket_name)
+        pcs_delta_object = pcs_delta_bucket.objects.filter(Prefix=object_name)
+        for item in pcs_delta_object:
+            pcs_delta_bucket.download_file(object_name, config['HISTORICAL_DATA_FILE'])
+            return True
+        else:
+            return False
+    except Exception as e:
+        output('S3 Error: %s' % e)
         return False
-    s3_client = boto3.client('s3')
-    results = s3_client.download_file(bucket_name, object_name, config['HISTORICAL_DATA_FILE'], )
-    print(results['ResponseMetadata'])
-    return results['ResponseMetadata']['HTTPStatusCode'] == 200
 
 ####
 
@@ -213,9 +217,17 @@ def lambda_upload_s3(config):
     bucket_name = config['LAMBDA_S3_BUCKET']
     object_name = config['LAMBDA_S3_OBJECT']
     s3_client = boto3.client('s3')
-    results = s3_client.upload_file(config['HISTORICAL_DATA_FILE'], bucket_name, object_name)
-    print(results['ResponseMetadata'])
-    return results['ResponseMetadata']['HTTPStatusCode'] == 200
+    try:
+        s3_client.upload_file(config['HISTORICAL_DATA_FILE'], bucket_name, object_name)
+        return True
+    except Exception as e:
+        output('S3 Error: %s' % e)
+        return False
+
+####
+
+def output(data=''):
+    print(data)
 
 ####
 
@@ -254,36 +266,36 @@ def common_handler(config):
     current_usage_count = 0
     field_names = ['Date', 'Resources']
     historical_data = []
-    today_yyyy_mm_dd = datetime.today().strftime('%Y-%m-%d')
-    yesterday_yyyy_mm_dd = (datetime.today() - timedelta(days = 1)).strftime('%Y-%m-%d')
+    today_yyyy_mm_dd = datetime.today().strftime('%Y-%m-%d-%H:%M:%S')
+    yesterday_yyyy_mm_dd = (datetime.today() - timedelta(days = 1)).strftime('%Y-%m-%d-%H:%M:%S')
 
-    print('Generating Prisma Cloud API Token')
+    output('Generating Prisma Cloud API Token')
     token = get_prisma_login(config)
     if config['DEBUG_MODE']:
-        print()
-        print(token)
-        print()
+        output()
+        output(token)
+        output()
     config['PRISMA_API_HEADERS']['x-redlock-auth'] = token
 
-    print('Querying Cloud Accounts')
+    output('Querying Cloud Accounts')
     cloud_accounts = get_cloud_accounts(config)
     cloud_accounts = [{'accountId': '%s' % a['accountId'], 'name': '%s' % a['name'], 'cloudType': '%s' % a['cloudType']} for a in cloud_accounts if a['enabled'] == True]
 
-    print('Querying Usage for %s Cloud Accounts' % len(cloud_accounts))
+    output('Querying Usage for %s Cloud Accounts' % len(cloud_accounts))
     for cloud_account in cloud_accounts:
         if config['CLOUD_ACCOUNT_ID'] and (cloud_account['accountId'] != config['CLOUD_ACCOUNT_ID']):
             continue
         if config['DEBUG_MODE']:
-            print('    Cloud Account ID: %s, Name: %s' % (cloud_account['accountId'], cloud_account['name']))
+            output('    Cloud Account ID: %s, Name: %s' % (cloud_account['accountId'], cloud_account['name']))
         else:
             sys.stdout.write('.')
             sys.stdout.flush()
         cloud_account_usage = get_cloud_account_usage(config, cloud_account)
         current_usage_count += count_licensable_usage(cloud_account_usage)
 
-    print()
-    print('Current (Licensable) Resource Count: %s' % current_usage_count)
-    print()
+    output()
+    output('Current (Licensable) Resource Count: %s' % current_usage_count)
+    output()
 
     # Read historical data; or create historical data with one resource to avoid a divide by zero error.
 
@@ -301,14 +313,14 @@ def common_handler(config):
 
     # Write historical data.
 
-    print('Historical (Licensable) Resource Count:')
-    print()
+    output('Historical (Licensable) Resource Count:')
+    output()
 
     with open(config['HISTORICAL_DATA_FILE'], 'w') as f:
         csv_writer = csv.DictWriter(f, fieldnames=field_names, delimiter = '\t')
         for sample in historical_data:
             csv_writer.writerow(sample)
-            print(sample)
+            output(sample)
         csv_writer.writerow({'Date': today_yyyy_mm_dd, 'Resources': current_usage_count})
 
     # Calculon, Compute!
@@ -322,11 +334,11 @@ def common_handler(config):
     percentage_change = math.trunc((current_usage_count - resource_count_mean) / resource_count_mean * 100)
 
     if config['DEBUG_MODE']:
-        print()
-        print('Mean: %s, Percent Change: %s' % (resource_count_mean, percentage_change))
-        print()
-        print('Current: %s' % current_usage_count)
-        print()
+        output()
+        output('Mean: %s, Percent Change: %s' % (resource_count_mean, percentage_change))
+        output()
+        output('Current: %s' % current_usage_count)
+        output()
 
     # Notify, if the percentage of change exceeds the trigger.
 
