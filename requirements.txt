@@ -1,0 +1,5 @@
+# requests==2.25.1
+# urllib3==1.26.3
+
+requests
+urllib3
