@@ -2,6 +2,12 @@
 
 .DS_Store
 
+**/.terraform/*
+*.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+
 *.conf
 *.tab
 *.txt
