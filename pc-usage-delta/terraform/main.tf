@@ -97,19 +97,19 @@ resource "aws_iam_policy" "pc_usage_delta" {
   description = "Allow reading and writing of usage data to S3"
   policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [{
-		"Action": [
-			"s3:PutObject",
-			"s3:GetObject",
-			"s3:ListBucket"
-		],
-		"Effect": "Allow",
-		"Resource": [
-			"arn:aws:s3:::pc-usage-delta",
-			"arn:aws:s3:::pc-usage-delta/*"
-		]
-	}]
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Action": [
+      "s3:PutObject",
+      "s3:GetObject",
+      "s3:ListBucket"
+    ],
+    "Effect": "Allow",
+    "Resource": [
+      "arn:aws:s3:::pc-usage-delta",
+      "arn:aws:s3:::pc-usage-delta/*"
+    ]
+  }]
 }
 EOF
 }
