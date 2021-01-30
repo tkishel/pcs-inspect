@@ -36,13 +36,13 @@ provider "aws" {
 
 resource "null_resource" "copy_pc_usage_delta" {
   provisioner "local-exec" {
-    command = "cp -fp ${path.module}/../pc-usage-delta.py /tmp/pc_usage_delta_lambda_function.py"
+    command = "cp -fp ${path.module}/../pc-usage-delta.py /tmp/lambda_function.py"
   }
 }
 
 data "archive_file" "pc_usage_delta" {
   depends_on  = [null_resource.copy_pc_usage_delta]
-  source_file = "/tmp/pc_usage_delta_lambda_function.py"
+  source_file = "/tmp/lambda_function.py"
   output_path = "/tmp/pc_usage_delta_lambda.zip"
   type        = "zip"
 }
