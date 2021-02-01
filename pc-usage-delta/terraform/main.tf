@@ -2,28 +2,77 @@ terraform {
   required_version = ">= 0.13.0"
 }
 
-#### REQUIRED
+#### REQUIRED VARIABLES/PARAMETERS
 
 variable "aws_region" {
-  default = ""
+  type = string
 }
 
 variable "prisma_api_endpoint" {
-  default = "https://api.prismacloud.io"
+  type        = string
+  description = "Prisma Cloud API URL (for example: https://api.prismacloud.io)"
 }
 
 variable "prisma_access_key" {
-  default = ""
+  type        = string
+  description = "API Access Key"
 }
 
 variable "prisma_secret_key" {
-  default = ""
+  type        = string
+  description = "API Secret Key"
 }
 
-#### OPTIONAL
+#### OPTIONAL VARIABLES/PARAMETERS
+
+# See also ../pc-usage-delta.py for defaults.
+
+variable "debug_mode" {
+  default     = "false"
+  type        = string
+  description = "Enable debugging (choices: 'true, 'false')"
+}
 
 variable "cloud_account_id" {
-  default = ""
+  default     = ""
+  type        = string
+  description = "Cloud Account ID to limit the usage query"
+}
+
+variable "historical_data_to_retain" {
+  default     = 30
+  type        = number
+  description = "Number of samples to retain)"
+}
+
+variable "lambda_s3_bucket" {
+  default     = "pc-usage-delta"
+  type        = string
+  description = "Bucket to save samples"
+}
+
+variable "lambda_s3_object" {
+  default     = "pc-usage-history.csv"
+  type        = string
+  description = "Bucket object to save samples"
+}
+
+variable "percent_change_trigger" {
+  default     = 10
+  type        = number
+  description = "Percentage to trigger a notification (choices: 1 ... 99)"
+}
+
+variable "time_range_amount" {
+  default     = 1
+  type        = number
+  description = "Time Range Amount to limit the usage query (choices: 1, 2, 3)"
+}
+
+variable "time_range_unit" {
+  default     = "month"
+  type        = string
+  description = "Time Range Unit to limit the usage query (choices: 'day', 'week', 'month', 'year')"
 }
 
 #### REGION
@@ -34,15 +83,8 @@ provider "aws" {
 
 #### LAMBDA FUNCTION
 
-resource "null_resource" "copy_pc_usage_delta" {
-  provisioner "local-exec" {
-    command = "cp -fp ${path.module}/../pc-usage-delta.py /tmp/lambda_function.py"
-  }
-}
-
 data "archive_file" "pc_usage_delta" {
-  depends_on  = [null_resource.copy_pc_usage_delta]
-  source_file = "/tmp/lambda_function.py"
+  source_file = "${path.module}/lambda_function.py"
   output_path = "/tmp/pc_usage_delta_lambda.zip"
   type        = "zip"
 }
@@ -51,10 +93,17 @@ resource "aws_lambda_function" "pc_usage_delta" {
   description                    = "Sample Prisma Cloud license usage"
   environment {
     variables = {
-      PRISMA_API_ENDPOINT = var.prisma_api_endpoint,
-      PRISMA_ACCESS_KEY   = var.prisma_access_key,
-      PRISMA_SECRET_KEY   = var.prisma_secret_key,
-      CLOUD_ACCOUNT_ID    = var.cloud_account_id
+      PRISMA_API_ENDPOINT       = var.prisma_api_endpoint,
+      PRISMA_ACCESS_KEY         = var.prisma_access_key,
+      PRISMA_SECRET_KEY         = var.prisma_secret_key,
+      DEBUG_MODE                = var.debug_mode,
+      CLOUD_ACCOUNT_ID          = var.cloud_account_id,
+      HISTORICAL_DATA_TO_RETAIN = var.historical_data_to_retain,
+      LAMBDA_S3_BUCKET          = var.lambda_s3_bucket,
+      LAMBDA_S3_OBJECT          = var.lambda_s3_object,
+      PERCENT_CHANGE_TRIGGER    = var.percent_change_trigger,
+      TIME_RANGE_AMOUNT         = var.time_range_amount,
+      TIME_RANGE_UNIT           = var.time_range_unit
     }
   }
   filename                       = "/tmp/pc_usage_delta_lambda.zip"

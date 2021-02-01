@@ -55,6 +55,10 @@ NOTIFY: This notification is triggered by a delta greater than 10 percent, measu
 * Deploy with Terraform.
 * Profit!
 
+Parameters are passed as environment variables.
+
+See the `lambda_configure` function in `pc-usage-delta.py` for a complete list of variables.
+
 #### Example
 
 ```

@@ -1,0 +1,12 @@
+template_type: TF
+template_version: 0.13
+#template_parameters:
+#  - root_module: terraform
+#    variable_files:
+#    - terraform/terraform.tfvars
+
+tags:
+  org: TJKPANW
+  team: TJKPC
+  group: TJKSE
+  env: TJKDEV

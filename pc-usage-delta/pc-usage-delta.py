@@ -31,19 +31,19 @@ def notify(percentage_change, current_usage_count, resource_count_mean, resource
     output()
 
 ##########################################################################################
-# Configuration.
+# Configuration. See also terraform/main.tf and terraform/terraform.tfvars for defaults.
 ##########################################################################################
 
 def configure_defaults():
     result = {}
-    result['HISTORICAL_DATA_FILE'] = '~/pc-usage-history.csv'
-    result['HISTORICAL_DATA_TO_RETAIN'] = 30
-    result['PERCENT_CHANGE_TRIGGER'] = 10
-    result['TIME_RANGE_AMOUNT'] = 1
-    result['TIME_RANGE_UNIT'] = 'month'
+    result['HISTORICAL_DATA_FILE']        = '~/pc-usage-history.csv'
+    result['HISTORICAL_DATA_TO_RETAIN']   = 30
+    result['PERCENT_CHANGE_TRIGGER']      = 10
+    result['TIME_RANGE_AMOUNT']           = 1
+    result['TIME_RANGE_UNIT']             = 'month'
     result['LAMBDA_HISTORICAL_DATA_FILE'] = '/tmp/pc-usage-history.csv'
-    result['LAMBDA_S3_BUCKET'] = 'pc-usage-delta'
-    result['LAMBDA_S3_OBJECT'] = 'pc-usage-history.csv'
+    result['LAMBDA_S3_BUCKET']            = 'pc-usage-delta'
+    result['LAMBDA_S3_OBJECT']            = 'pc-usage-history.csv'
     return result
 
 def command_line_configure():
@@ -59,44 +59,43 @@ def command_line_configure():
     pc_parser.add_argument('-s', '--secret_key',
         type=str, required=True,
         help='*Required* API Secret Key')
+    pc_parser.add_argument('-d', '--debug',
+        action='store_true',
+        help='(Optional) Enable debugging')
     pc_parser.add_argument('-ca', '--cloud_account',
         type=str,
         help='(Optional) Cloud Account ID to limit the usage query')
+    pc_parser.add_argument('-o', '--output_file',
+        type=str, default=defaults['HISTORICAL_DATA_FILE'],
+        help="(Optional) Output file to save samples. Default: '%s'" % defaults['HISTORICAL_DATA_FILE'])
+    pc_parser.add_argument('-r', '--retain_samples',
+        type=int, default=defaults['HISTORICAL_DATA_TO_RETAIN'],
+        help='(Optional) Number of samples to retain. Default: %s' % defaults['HISTORICAL_DATA_TO_RETAIN'])
+    pc_parser.add_argument('-p', '--percent_trigger',
+        type=int, default=defaults['PERCENT_CHANGE_TRIGGER'],
+        help='(Optional) Percentage to trigger a notification. Default: %s' % defaults['PERCENT_CHANGE_TRIGGER'])
     pc_parser.add_argument('-ta', '--time_range_amount',
         type=int, default=defaults['TIME_RANGE_AMOUNT'], choices=[1, 2, 3],
         help='(Optional) Time Range Amount to limit the usage query. Default: %s' % defaults['TIME_RANGE_AMOUNT'])
     pc_parser.add_argument('-tu', '--time_range_unit',
         type=str, default=defaults['TIME_RANGE_UNIT'], choices=['day', 'week', 'month', 'year'],
         help="(Optional) Time Range Unit to limit the usage query. Default: '%s'" % defaults['TIME_RANGE_UNIT'])
-    pc_parser.add_argument('-p', '--percent_trigger',
-        type=int, default=defaults['PERCENT_CHANGE_TRIGGER'],
-        help='(Optional) Percentage to trigger a notification. Default: %s' % defaults['PERCENT_CHANGE_TRIGGER'])
-    pc_parser.add_argument('-r', '--retain_samples',
-        type=int, default=defaults['HISTORICAL_DATA_TO_RETAIN'],
-        help='(Optional) Number of samples to retain. Default: %s' % defaults['HISTORICAL_DATA_TO_RETAIN'])
-    pc_parser.add_argument('-o', '--output_file',
-        type=str, default=defaults['HISTORICAL_DATA_FILE'],
-        help="(Optional) Output file to save samples. Default: '%s'" % defaults['HISTORICAL_DATA_FILE'])
-    pc_parser.add_argument('-d', '--debug',
-        action='store_true',
-        help='(Optional) Enable debugging.')
     args = pc_parser.parse_args()
-
-    result['DEBUG_MODE'] = args.debug
     result['PRISMA_API_ENDPOINT'] = args.url
-    result['PRISMA_ACCESS_KEY'] = args.access_key
-    result['PRISMA_SECRET_KEY'] = args.secret_key
-    result['PRISMA_API_HEADERS'] = {
+    result['PRISMA_ACCESS_KEY']   = args.access_key
+    result['PRISMA_SECRET_KEY']   = args.secret_key
+    result['PRISMA_API_HEADERS']  = {
         'accept': 'application/json; charset=UTF-8',
         'content-type': 'application/json'
     }
+    result['DEBUG_MODE']                  = args.debug
     result['PRISMA_API_REQUEST_TIMEOUTS'] = (30, 300) # (CONNECT, READ)
-    result['CLOUD_ACCOUNT_ID'] = args.cloud_account
-    result['HISTORICAL_DATA_FILE'] = os.path.expanduser(args.output_file)
-    result['HISTORICAL_DATA_TO_RETAIN'] = args.retain_samples
-    result['PERCENT_CHANGE_TRIGGER'] = args.percent_trigger
-    result['TIME_RANGE_AMOUNT'] = args.time_range_amount
-    result['TIME_RANGE_UNIT'] = args.time_range_unit
+    result['CLOUD_ACCOUNT_ID']            = args.cloud_account
+    result['HISTORICAL_DATA_FILE']        = os.path.expanduser(args.output_file)
+    result['HISTORICAL_DATA_TO_RETAIN']   = args.retain_samples
+    result['PERCENT_CHANGE_TRIGGER']      = args.percent_trigger
+    result['TIME_RANGE_AMOUNT']           = args.time_range_amount
+    result['TIME_RANGE_UNIT']             = args.time_range_unit
     return result
 
 ####
@@ -104,7 +103,6 @@ def command_line_configure():
 def lambda_configure():
     defaults = configure_defaults()
     result = {}
-    result['DEBUG_MODE'] = (env_var_or_none('DEBUG_MODE') == 'true')
     result['PRISMA_API_ENDPOINT'] = env_var_or_none('PRISMA_API_ENDPOINT')
     result['PRISMA_ACCESS_KEY']   = env_var_or_none('PRISMA_ACCESS_KEY')
     result['PRISMA_SECRET_KEY']   = env_var_or_none('PRISMA_SECRET_KEY')
@@ -112,15 +110,16 @@ def lambda_configure():
         'accept': 'application/json; charset=UTF-8',
         'content-type': 'application/json'
     }
+    result['DEBUG_MODE']                  = (env_var_or_none('DEBUG_MODE') == 'true')
     result['PRISMA_API_REQUEST_TIMEOUTS'] = (30, 300) # (CONNECT, READ)
-    result['CLOUD_ACCOUNT_ID'] = env_var_or_none('CLOUD_ACCOUNT_ID')
-    result['HISTORICAL_DATA_FILE'] = defaults['LAMBDA_HISTORICAL_DATA_FILE']
-    result['HISTORICAL_DATA_TO_RETAIN'] = env_var_or_none('HISTORICAL_DATA_TO_RETAIN') or defaults['HISTORICAL_DATA_TO_RETAIN']
-    result['LAMBDA_S3_BUCKET'] = defaults['LAMBDA_S3_BUCKET']
-    result['LAMBDA_S3_OBJECT'] = defaults['LAMBDA_S3_OBJECT']
-    result['PERCENT_CHANGE_TRIGGER'] = env_var_or_none('PERCENT_CHANGE_TRIGGER') or defaults['PERCENT_CHANGE_TRIGGER']
-    result['TIME_RANGE_AMOUNT'] = env_var_or_none('TIME_RANGE_AMOUNT') or defaults['TIME_RANGE_AMOUNT']
-    result['TIME_RANGE_UNIT'] = env_var_or_none('TIME_RANGE_UNIT') or defaults['TIME_RANGE_UNIT']
+    result['CLOUD_ACCOUNT_ID']            = env_var_or_none('CLOUD_ACCOUNT_ID')
+    result['HISTORICAL_DATA_FILE']        = env_var_or_none('HISTORICAL_DATA_FILE')            or defaults['LAMBDA_HISTORICAL_DATA_FILE']
+    result['HISTORICAL_DATA_TO_RETAIN']   = env_var_or_none('HISTORICAL_DATA_TO_RETAIN', True) or defaults['HISTORICAL_DATA_TO_RETAIN']
+    result['LAMBDA_S3_BUCKET']            = env_var_or_none('LAMBDA_S3_BUCKET')                or defaults['LAMBDA_S3_BUCKET']
+    result['LAMBDA_S3_OBJECT']            = env_var_or_none('LAMBDA_S3_OBJECT')                or defaults['LAMBDA_S3_OBJECT']
+    result['PERCENT_CHANGE_TRIGGER']      = env_var_or_none('PERCENT_CHANGE_TRIGGER', True)    or defaults['PERCENT_CHANGE_TRIGGER']
+    result['TIME_RANGE_AMOUNT']           = env_var_or_none('TIME_RANGE_AMOUNT', True)         or defaults['TIME_RANGE_AMOUNT']
+    result['TIME_RANGE_UNIT']             = env_var_or_none('TIME_RANGE_UNIT')                 or defaults['TIME_RANGE_UNIT']
     if not result['PRISMA_API_ENDPOINT']:
         output('Error: specify PRISMA_API_ENDPOINT')
         sys.exit()
@@ -130,15 +129,22 @@ def lambda_configure():
     if not result['PRISMA_SECRET_KEY']:
         output('Error: specify PRISMA_SECRET_KEY')
         sys.exit()
-    if not result['PRISMA_API_ENDPOINT']:
-        output('Error: specify PRISMA_API_ENDPOINT')
-        sys.exit()
     return result
 
 ####
 
-def env_var_or_none(var_name):
-    return os.environ.get(var_name)
+def env_var_or_none(var_name, to_int=False):
+    var_value = os.environ.get(var_name)
+    if var_value == None:
+        return None
+    var_value_stripped = var_value.strip(' ')
+    if var_value_stripped:
+        if to_int:
+            return int(var_value_stripped)
+        else:
+            return var_value_stripped
+    else:
+        return None
 
 ##########################################################################################
 # Utilities.
