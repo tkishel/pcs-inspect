@@ -128,9 +128,7 @@ resource "aws_lambda_function" "pc_usage_delta" {
   role                           = aws_iam_role.pc_usage_delta_role.arn
   runtime                        = "python3.8"
   source_code_hash               = data.archive_file.pc_usage_delta_zip.output_base64sha256
-  tags = {
-    storestatus = "dnd"
-  }
+  tags                           = { storestatus = "dnd" }
   timeout = 59
 }
 
@@ -147,9 +145,7 @@ resource "aws_lambda_permission" "cloudwatch_call_pc_usage_delta" {
 resource "aws_s3_bucket" "pc-usage-delta" {
   bucket = "pc-usage-delta"
   acl    = "private"
-  tags = {
-    storestatus = "dnd"
-  }
+  tags   = { storestatus = "dnd" }
 }
 
 resource "aws_s3_bucket_public_access_block" "pc_usage_delta" {
@@ -165,9 +161,7 @@ resource "aws_s3_bucket_public_access_block" "pc_usage_delta" {
 resource "aws_kms_key" "pc_usage_delta_kms_key" {
   description         = "KMS Key for encryption and decryption of environment variables."
   enable_key_rotation = true
-  tags = {
-    storestatus = "dnd"
-  }  
+  tags                = { storestatus = "dnd" }
 }
 
 resource "aws_kms_alias" "pc_usage_delta_kms_key_alias" {
@@ -184,26 +178,19 @@ resource "aws_kms_grant" "pc_usage_delta" {
 
 #### IAM
 
+data "aws_iam_policy_document" "pc_usage_delta_cloudwatch" {
+  statement {
+    actions   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+    effect    = "Allow"
+    resources = ["arn:aws:logs:*:*:*"]
+  }
+}
+
 resource "aws_iam_policy" "pc_usage_delta_cloudwatch_policy" {
   name        = "pc_usage_delta_cloudwatch_policy"
   description = "Allow writing to CloudWatch"
   path        = "/"
-  policy      = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents"
-      ],
-      "Effect": "Allow",
-      "Resource": "arn:aws:logs:*:*:*"
-    }
-  ]
-}
-EOF
+  policy      = data.aws_iam_policy_document.pc_usage_delta_cloudwatch.json
 }
 
 resource "aws_iam_role_policy_attachment" "pc_usage_delta_cloudwatch" {
@@ -211,26 +198,18 @@ resource "aws_iam_role_policy_attachment" "pc_usage_delta_cloudwatch" {
   role       = aws_iam_role.pc_usage_delta_role.name
 }
 
+data "aws_iam_policy_document" "pc_usage_delta_s3" {
+  statement {
+    actions   = ["s3:ListBucket", "s3:GetObject", "s3:PutObject"]
+    effect    = "Allow"
+    resources = ["arn:aws:s3:::pc-usage-delta", "arn:aws:s3:::pc-usage-delta/*"]
+  }
+}
+
 resource "aws_iam_policy" "pc_usage_delta_s3_policy" {
   name        = "pc_usage_delta_s3_policy"
   description = "Allow reading and writing to S3"
-  policy      = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [{
-    "Action": [
-      "s3:ListBucket",
-      "s3:GetObject",
-      "s3:PutObject"
-    ],
-    "Effect": "Allow",
-    "Resource": [
-      "arn:aws:s3:::pc-usage-delta",
-      "arn:aws:s3:::pc-usage-delta/*"
-    ]
-  }]
-}
-EOF
+  policy      = data.aws_iam_policy_document.pc_usage_delta_s3.json
 }
 
 resource "aws_iam_role_policy_attachment" "pc_usage_delta_s3" {
@@ -238,25 +217,21 @@ resource "aws_iam_role_policy_attachment" "pc_usage_delta_s3" {
   role       = aws_iam_role.pc_usage_delta_role.name
 }
 
+data "aws_iam_policy_document" "pc_usage_delta_s3_assume_role" {
+  statement {
+    actions       = ["sts:AssumeRole"]
+    effect        = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
+
 resource "aws_iam_role" "pc_usage_delta_role" {
   name               = "pc_usage_delta_role"
-  assume_role_policy = <<EOF
-{
- "Version": "2012-10-17",
- "Statement": [
-   {
-     "Action": "sts:AssumeRole",
-     "Principal": {
-       "Service": "lambda.amazonaws.com"
-     },
-     "Effect": "Allow"
-   }
- ]
-}
-EOF
-  tags = {
-    storestatus = "dnd"
-  }
+  assume_role_policy = data.aws_iam_policy_document.pc_usage_delta_s3_assume_role.json
+  tags               = { storestatus = "dnd" }
 }
 
 #### CLOUDWATCH
@@ -265,21 +240,17 @@ resource "aws_cloudwatch_event_rule" "pc_usage_delta" {
   name                = "pc_usage_delta"
   description         = "Trigger sampling of Prisma Cloud license usage"
   schedule_expression = "rate(1 day)"
-  tags = {
-    storestatus = "dnd"
-  }
+  tags                = { storestatus = "dnd" }
 }
 
 resource "aws_cloudwatch_event_target" "pc_usage_delta" {
   arn       = aws_lambda_function.pc_usage_delta.arn
   rule      = aws_cloudwatch_event_rule.pc_usage_delta.name
-  target_id = "lambda"
+  target_id = "pc_usage_delta"
 }
 
 resource "aws_cloudwatch_log_group" "pc_usage_delta_cloudwatch" {
   name              = "/aws/lambda/${aws_lambda_function.pc_usage_delta.function_name}"
   retention_in_days = 14
-  tags = {
-    storestatus = "dnd"
-  }
+  tags              = { storestatus = "dnd" }
 }
