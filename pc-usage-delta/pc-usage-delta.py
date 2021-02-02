@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+from base64 import b64decode
 import boto3
 import csv
 from datetime import datetime, timedelta
@@ -31,7 +32,7 @@ def notify(percentage_change, current_usage_count, resource_count_mean, resource
     output()
 
 ##########################################################################################
-# Configuration. See also terraform/main.tf and terraform/terraform.tfvars for defaults.
+# Configuration. See also terraform/main.tf for defaults.
 ##########################################################################################
 
 def configure_defaults():
@@ -44,6 +45,7 @@ def configure_defaults():
     result['LAMBDA_HISTORICAL_DATA_FILE'] = '/tmp/pc-usage-history.csv'
     result['LAMBDA_S3_BUCKET']            = 'pc-usage-delta'
     result['LAMBDA_S3_OBJECT']            = 'pc-usage-history.csv'
+    result['LAMBDA_KMS_KEY_ID']           = 'alias/pc_usage_delta_kms_key'
     return result
 
 def command_line_configure():
@@ -104,9 +106,20 @@ def lambda_configure():
     defaults = configure_defaults()
     result = {}
     result['PRISMA_API_ENDPOINT'] = env_var_or_none('PRISMA_API_ENDPOINT')
-    result['PRISMA_ACCESS_KEY']   = env_var_or_none('PRISMA_ACCESS_KEY')
-    result['PRISMA_SECRET_KEY']   = env_var_or_none('PRISMA_SECRET_KEY')
-    result['PRISMA_API_HEADERS'] = {
+    prisma_api_key = env_var_or_none('PRISMA_API_KEY')
+    if prisma_api_key:
+        try:
+            decrypted_prisma_api_key = boto3.client('kms').decrypt(
+                CiphertextBlob = b64decode(prisma_api_key),
+                KeyId = defaults['LAMBDA_KMS_KEY_ID']
+            )['Plaintext']
+            if decrypted_prisma_api_key:
+                prisma_api_key = json.loads(decrypted_prisma_api_key)
+                result['PRISMA_ACCESS_KEY'] = prisma_api_key['PRISMA_ACCESS_KEY']
+                result['PRISMA_SECRET_KEY'] = prisma_api_key['PRISMA_SECRET_KEY']
+        except Exception as e:
+            output('Error with KMS: %s' % e)
+    result['PRISMA_API_HEADERS']  = {
         'accept': 'application/json; charset=UTF-8',
         'content-type': 'application/json'
     }
@@ -121,13 +134,13 @@ def lambda_configure():
     result['TIME_RANGE_AMOUNT']           = env_var_or_none('TIME_RANGE_AMOUNT', True)         or defaults['TIME_RANGE_AMOUNT']
     result['TIME_RANGE_UNIT']             = env_var_or_none('TIME_RANGE_UNIT')                 or defaults['TIME_RANGE_UNIT']
     if not result['PRISMA_API_ENDPOINT']:
-        output('Error: specify PRISMA_API_ENDPOINT')
+        output('Error: PRISMA_API_ENDPOINT Undefined')
         sys.exit()
     if not result['PRISMA_ACCESS_KEY']:
-        output('Error: specify PRISMA_ACCESS_KEY')
+        output('Error: PRISMA_ACCESS_KEY in PRISMA_API_KEY Undefined')
         sys.exit()
     if not result['PRISMA_SECRET_KEY']:
-        output('Error: specify PRISMA_SECRET_KEY')
+        output('Error: PRISMA_SECRET_KEY in PRISMA_API_KEY Undefined')
         sys.exit()
     return result
 
@@ -214,7 +227,7 @@ def lambda_download_s3(config):
         else:
             return False
     except Exception as e:
-        output('S3 Error: %s' % e)
+        output('Error with S3 Resource: %s' % e)
         return False
 
 ####
@@ -227,7 +240,7 @@ def lambda_upload_s3(config):
         s3_client.upload_file(config['HISTORICAL_DATA_FILE'], bucket_name, object_name)
         return True
     except Exception as e:
-        output('S3 Error: %s' % e)
+        output('Error with S3 Client: %s' % e)
         return False
 
 ####
