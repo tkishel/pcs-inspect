@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import math
 import os
 import requests
 from requests.exceptions import RequestException
@@ -297,8 +298,6 @@ policy_counts = {
     'audit_event': 0,
     'config':      0,
     'network':     0,
-    'default':     0,
-    'custom':      0,
 }
 
 # Duplication between the above and below intended for future error checking.
@@ -352,11 +351,6 @@ for policy in policy_list:
         for standard in compliance_standards_list:
             if not standard in alerts_by_compliance_standard:
                 alerts_by_compliance_standard[standard] = {'high': 0, 'medium': 0, 'low': 0}
-    # Increment Policy Counters
-    if policy['systemDefault'] == True:
-        policy_counts['default'] += 1
-    else:
-        policy_counts['custom'] += 1
 
 ##########################################################################################
 # Loop through all Alerts and collect the details of each Alert.
@@ -404,6 +398,9 @@ for alert in alert_list:
     if alert['policy']['systemDefault'] == True:
         alert_counts['custom'] += 1
 
+with open(ASSET_FILE, 'r') as f:
+  asset_list = json.load(f)
+
 with open(USER_FILE, 'r') as f:
   user_list = json.load(f)
 
@@ -418,6 +415,20 @@ with open(ALERTRULE_FILE, 'r') as f:
 
 with open(INTEGRATION_FILE, 'r') as f:
   integration_list = json.load(f)
+
+# Totals
+
+asset_count_total                   = asset_list['summary']['totalResources']
+
+alerts_by_compliance_standard_total = len(alerts_by_compliance_standard)
+alerts_by_policy_total              = len(alerts_by_policy)
+alert_count_total                   = len(alert_list)
+policy_count_total                  = len(policy_list)
+user_count_total                    = len(user_list)
+account_count_total                 = len(account_list)
+accountgroup_count_total            = len(accountgroup_list)
+alertrule_count_total               = len(alertrule_list)
+integration_count_total             = len(integration_list)
 
 ##########################################################################################
 # Output tables and totals.
@@ -453,16 +464,6 @@ for policy in sorted(alerts_by_policy):
     policy_compliance_standards = ','.join(map(str, policies[policyId]['complianceStandards']))
     print('%s\t%s\t%s\t%s\t%s\t%s\t"%s"' % (policyName, policySeverity, policyType, policyShiftable, policyRemediable, alert_count, policy_compliance_standards))
 
-alerts_by_compliance_standard_total = len(alerts_by_compliance_standard)
-alerts_by_policy_total              = len(alerts_by_policy)
-alert_list_total                    = len(alert_list)
-policy_list_total                   = len(policy_list)
-user_list_total                     = len(user_list)
-account_list_total                  = len(account_list)
-accountgroup_list_total             = len(accountgroup_list)
-alertrule_list_total                = len(alertrule_list)
-integration_list_total              = len(integration_list)
-
 # Output Summary
 
 print()
@@ -474,26 +475,29 @@ print("Compliance Standard with Alerts: Total\t%s" % alerts_by_compliance_standa
 print()
 print("Policies with Alerts: Total\t%s"            % alerts_by_policy_total)
 print()
-print("Alerts: Total\t%s"              % alert_list_total)
 print("Alerts: Open\t%s"               % alert_counts['open'])
+print("Alerts: Total\t%s"              % alert_count_total)
+print()
 print("Alerts: Resolved\t%s"           % alert_counts['resolved'])
-print("Alerts: Resolved: PCT\t%s"      % (alert_list_total / alert_counts['resolved']) )
+print("Alerts: Resolved: Percent\t%s"  % math.trunc(alert_count_total / alert_counts['resolved']) )
 print("Alerts: Resolved by Delete\t%s" % alert_counts['resolved_deleted'])
 print("Alerts: Resolved by Update\t%s" % alert_counts['resolved_updated'])
+print()
 print("Alerts: High-Severity\t%s"      % alert_counts['resolved_high'])
 print("Alerts: Medium-Severity\t%s"    % alert_counts['resolved_medium'])
 print("Alerts: Low-Severity\t%s"       % alert_counts['resolved_low'])
+print()
 print("Alerts: Anomaly\t%s"            % policy_counts['anomaly'])
 print("Alerts: Config\t%s"             % policy_counts['config'])
 print("Alerts: Network\t%s"            % policy_counts['network'])
-# Note it appears that `audit_event` alerts are returned from the /policy endpoint, not from the /alert endpoint.
-# The `policy_counts` structure counts results from the /alert endpoint. So, included only for reference.
-# print("Alerts: Audit\t%s"              % policy_counts['audit_event'])
-print("Alerts: with IaC\t%s"           % alert_counts['shiftable'])
-print("Alerts: with IaC: PCT\t%s"      % (alert_list_total / alert_counts['shiftable']) )
-print("Alerts: with Remediation\t%s"   % alert_counts['remediable'])
-print("Alerts: with Remediation: PCT\t%s" % (alert_list_total / alert_counts['remediable']) )
-print("Alerts: Custom Policies\t%s"    % alert_counts['custom'])
+print()
+print("Alerts: with IaC\t%s"                  % alert_counts['shiftable'])
+print("Alerts: with IaC: Percent\t%s"         % math.trunc(alert_count_total / alert_counts['shiftable']) )
+print()
+print("Alerts: with Remediation\t%s"          % alert_counts['remediable'])
+print("Alerts: with Remediation: Percent\t%s" % math.trunc(alert_count_total / alert_counts['remediable']) )
+print()
+print("Alerts: Custom Policies\t%s"           % alert_counts['custom'])
 print
 
 print()
@@ -501,14 +505,27 @@ print('#########################################################################
 print('# SHEET: Summary')
 print('#################################################################################')
 print()
-print("Policies: Total\t%s"              % policy_list_total)
-print("Policies: Custom\t%s"             % policy_counts['custom'])
-print("Policies: Default\t%s"            % policy_counts['default'])
+print("Assets: Total\t%s"                % asset_count_total)
 print()
-print("Users: Total\t%s"                 % user_list_total)
-print("Accounts: Total\t%s"              % account_list_total)
-print("Account Groups: Total\t%s"        % accountgroup_list_total)
-print("Alert Rules: Total\t%s"           % alertrule_list_total)
-print("Integrations: Total\t%s"          % integration_list_total)
+print("Policies: Custom\t%s"             % sum(x.get('systemDefault') == False for x in policy_list) )
+print("Policies: Default\t%s"            % sum(x.get('systemDefault') == True for x in policy_list) )
+print("Policies: Total\t%s"              % policy_count_total)
+print()
+print("Users: Disabled\t%s"              % sum(x.get('enabled') == False for x in user_list) )
+print("Users: Enabled\t%s"               % sum(x.get('enabled') == True for x in user_list) )
+print("Users: Total\t%s"                 % user_count_total)
+print()
+print("Accounts: Disabled\t%s"           % sum(x.get('enabled') == False for x in account_list) )
+print("Accounts: Enabled\t%s"            % sum(x.get('enabled') == True for x in account_list) )
+print("Accounts: Total\t%s"              % account_count_total)
+print()
+print("Account Groups: Total\t%s"        % accountgroup_count_total)
+print()
+print("Alert Rules: Disabled\t%s"        % sum(x.get('enabled') == False for x in alertrule_list))
+print("Alert Rules: Enabled\t%s"         % sum(x.get('enabled') == True for x in alertrule_list))
+print("Alert Rules: Total\t%s"           % alertrule_count_total)
+print()
+print("Integrations: Disabled\t%s"       % sum(x.get('enabled') == False for x in integration_list) )
+print("Integrations: Enabled\t%s"        % sum(x.get('enabled') == True for x in integration_list) )
+print("Integrations: Total\t%s"          % integration_count_total)
 
-# print(sum(x.get('enabled') == True for x in user_list))
