@@ -94,11 +94,13 @@ def make_api_call(method, url, requ_data = None):
         requ = requests.Request(method, url, data = requ_data, headers = PRISMA_API_HEADERS)
         prep = requ.prepare()
         sess = requests.Session()
-        resp = sess.send(prep, timeout=(API_TIMEOUTS))
+        # GlobalProtect generates 'ignore self signed certificate in certificate chain' errors:
+        requests.packages.urllib3.disable_warnings()
+        resp = sess.send(prep, timeout=(API_TIMEOUTS), verify=False)
         if resp.status_code == 200:
             return resp.content
         else:
-            return {}
+            return bytes('{}', 'utf-8')
     except RequestException as e:
         output('Error with API: %s: %s' % (url, str(e)))
         sys.exit()
@@ -298,6 +300,8 @@ alerts_by_policy   = {}
 # Loop through all Policies and collect the details of each Policy.
 # Do not use the alert count from this endpoint, as they are not scoped to a time range.
 ##########################################################################################
+
+# TODO: Track "policyCategory": "incident" and "risk" Alerts
 
 with open(POLICY_FILE, 'r') as f:
   policy_list = json.load(f)
