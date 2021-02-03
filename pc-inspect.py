@@ -4,6 +4,7 @@ import argparse
 import json
 import math
 import os
+import re
 import requests
 from requests.exceptions import RequestException
 import sys
@@ -17,7 +18,7 @@ pc_parser = argparse.ArgumentParser(description='This script collects or process
 pc_parser.add_argument(
     '-c', '--customer_name',
     type=str, required=True,
-    help='*Required* Customer Name, used for Alert and Policy files')
+    help='*Required* Customer Name')
 
 pc_parser.add_argument('-m', '--mode',
     type=str, required=True, choices=['collect', 'process'],
@@ -57,6 +58,7 @@ args = pc_parser.parse_args()
 
 DEBUG_MODE          = args.debug
 RUN_MODE            = args.mode
+SUPPORT_API_MODE    = False           # Requires '_support/v2/inventory' and '_support/alerts' endpoints.
 PRISMA_API_ENDPOINT = args.url        # or os.environ.get('PRISMA_API_ENDPOINT')
 PRISMA_ACCESS_KEY   = args.access_key # or os.environ.get('PRISMA_ACCESS_KEY')
 PRISMA_SECRET_KEY   = args.secret_key # or os.environ.get('PRISMA_SECRET_KEY')
@@ -69,15 +71,16 @@ CUSTOMER_NAME     = args.customer_name
 CLOUD_ACCOUNT_ID  = args.cloud_account
 TIME_RANGE_AMOUNT = args.time_range_amount
 TIME_RANGE_UNIT   = args.time_range_unit
-TIME_RANGE_LABEL  = 'Time Range - Past %s %s' % (TIME_RANGE_AMOUNT, TIME_RANGE_UNIT.capitalize()) 
-ASSET_FILE        = '%s-assets.txt' % CUSTOMER_NAME
-POLICY_FILE       = '%s-policies.txt' % CUSTOMER_NAME
-ALERT_FILE        = '%s-alerts.txt' % CUSTOMER_NAME
-USER_FILE         = '%s-users.txt' % CUSTOMER_NAME
-ACCOUNT_FILE      = '%s-accounts.txt' % CUSTOMER_NAME
-ACCOUNTGROUP_FILE = '%s-accountgroups.txt' % CUSTOMER_NAME
-ALERTRULE_FILE    = '%s-alertrules.txt' % CUSTOMER_NAME
-INTEGRATION_FILE  = '%s-integrations.txt' % CUSTOMER_NAME
+TIME_RANGE_LABEL  = 'Time Range - Past %s %s' % (TIME_RANGE_AMOUNT, TIME_RANGE_UNIT.capitalize())
+CUSTOMER_FILE     = re.sub(r'\W+', '', CUSTOMER_NAME).lower()
+ASSET_FILE        = '%s-assets.txt' % CUSTOMER_FILE
+POLICY_FILE       = '%s-policies.txt' % CUSTOMER_FILE
+ALERT_FILE        = '%s-alerts.txt' % CUSTOMER_FILE
+USER_FILE         = '%s-users.txt' % CUSTOMER_FILE
+ACCOUNT_FILE      = '%s-accounts.txt' % CUSTOMER_FILE
+ACCOUNTGROUP_FILE = '%s-accountgroups.txt' % CUSTOMER_FILE
+ALERTRULE_FILE    = '%s-alertrules.txt' % CUSTOMER_FILE
+INTEGRATION_FILE  = '%s-integrations.txt' % CUSTOMER_FILE
 DATA_FILES        = [ASSET_FILE, POLICY_FILE, ALERT_FILE, USER_FILE, ACCOUNT_FILE, ACCOUNTGROUP_FILE, ACCOUNTGROUP_FILE, INTEGRATION_FILE]
 
 ##########################################################################################
@@ -120,61 +123,100 @@ def get_prisma_login():
         sys.exit()
     return token
 
-####
-  
+# SUPPORT_API_MODE for 'get_assets()' requires a '_support/v2/inventory' endpoint.
+
 def get_assets():
     if CLOUD_ACCOUNT_ID:
         query_params = 'timeType=%s&timeAmount=%s&timeUnit=%s&cloud.account=%s' % ('relative', TIME_RANGE_AMOUNT, TIME_RANGE_UNIT, CLOUD_ACCOUNT_ID)
     else:
         query_params = 'timeType=%s&timeAmount=%s&timeUnit=%s' % ('relative', TIME_RANGE_AMOUNT, TIME_RANGE_UNIT)
     api_response = make_api_call('GET', '%s/v2/inventory?%s' % (PRISMA_API_ENDPOINT, query_params))
-    alert_file = open(ASSET_FILE, 'wb') 
+    alert_file = open(ASSET_FILE, 'wb')
     alert_file.write(api_response)
     alert_file.close()
 
 def get_policies():
-    api_response = make_api_call('GET', '%s/policy?policy.enabled=true' % PRISMA_API_ENDPOINT)
+    if SUPPORT_API_MODE:
+        body_params = {"customerName": "%s" % CUSTOMER_NAME}
+        request_data = json.dumps(body_params)
+        api_response = make_api_call('POST', '%s/_support/policy?policy.enabled=true' % PRISMA_API_ENDPOINT, request_data)
+    else:
+        api_response = make_api_call('GET', '%s/policy?policy.enabled=true' % PRISMA_API_ENDPOINT)
     policy_file = open(POLICY_FILE, 'wb')
     policy_file.write(api_response)
     policy_file.close()
 
+# SUPPORT_API_MODE for 'get_alerts()' requires a valid '_support/alert' endpoint.
+# Currently '_support/alert' returns 'getAlert()' instead of 'getAlerts()' backend function names.
+
 def get_alerts():
-    body_params = {"timeRange": {"value": {"unit":"%s" % TIME_RANGE_UNIT, "amount":TIME_RANGE_AMOUNT}, "type":"relative"}}
+    body_params = {}
+    body_params['timeRange'] = {"value": {"unit": "%s" % TIME_RANGE_UNIT, "amount": TIME_RANGE_AMOUNT}, "type": "relative"}
     if CLOUD_ACCOUNT_ID:
-        body_params["filters"] = [{"name":"cloud.accountId","value":"%s" % CLOUD_ACCOUNT_ID, "operator":"="}]
-    request_data = json.dumps(body_params)
-    api_response = make_api_call('POST', '%s/alert' % PRISMA_API_ENDPOINT, request_data)
-    alert_file = open(ALERT_FILE, 'wb') 
+        body_params["filters"] = [{"name": "cloud.accountId","value": "%s" % CLOUD_ACCOUNT_ID, "operator": "="}]
+    if False:
+        body_params["customerName"] = "%s" % CUSTOMER_NAME
+        request_data = json.dumps(body_params)
+        api_response = make_api_call('POST', '%s/_support/alert' % PRISMA_API_ENDPOINT, request_data)
+    else:
+        request_data = json.dumps(body_params)
+        api_response = make_api_call('POST', '%s/alert' % PRISMA_API_ENDPOINT, request_data)
+    alert_file = open(ALERT_FILE, 'wb')
     alert_file.write(api_response)
     alert_file.close()
 
 def get_users():
-    api_response = make_api_call('GET', '%s/v2/user' % PRISMA_API_ENDPOINT)
-    policy_file = open(USER_FILE, 'wb') 
+    if SUPPORT_API_MODE:
+        body_params = {"customerName": "%s" % CUSTOMER_NAME}
+        request_data = json.dumps(body_params)
+        api_response = make_api_call('POST', '%s/v2/_support/user' % PRISMA_API_ENDPOINT, request_data)
+    else:
+        api_response = make_api_call('GET', '%s/v2/user' % PRISMA_API_ENDPOINT)
+    policy_file = open(USER_FILE, 'wb')
     policy_file.write(api_response)
     policy_file.close()
 
 def get_accounts():
-    api_response = make_api_call('GET', '%s/cloud' % PRISMA_API_ENDPOINT)
-    policy_file = open(ACCOUNT_FILE, 'wb') 
+    if SUPPORT_API_MODE:
+        body_params = {"customerName": "%s" % CUSTOMER_NAME}
+        request_data = json.dumps(body_params)
+        api_response = make_api_call('POST', '%s/_support/cloud' % PRISMA_API_ENDPOINT, request_data)
+    else:
+        api_response = make_api_call('GET', '%s/cloud' % PRISMA_API_ENDPOINT)
+    policy_file = open(ACCOUNT_FILE, 'wb')
     policy_file.write(api_response)
     policy_file.close()
 
 def get_accountgroups():
-    api_response = make_api_call('GET', '%s/cloud/group' % PRISMA_API_ENDPOINT)
-    policy_file = open(ACCOUNTGROUP_FILE, 'wb') 
+    if SUPPORT_API_MODE:
+        body_params = {"customerName": "%s" % CUSTOMER_NAME}
+        request_data = json.dumps(body_params)
+        api_response = make_api_call('POST', '%s/_support/cloud/group' % PRISMA_API_ENDPOINT, request_data)
+    else:
+        api_response = make_api_call('GET', '%s/cloud/group' % PRISMA_API_ENDPOINT)
+    policy_file = open(ACCOUNTGROUP_FILE, 'wb')
     policy_file.write(api_response)
     policy_file.close()
 
 def get_alertrules():
-    api_response = make_api_call('GET', '%s/v2/alert/rule' % PRISMA_API_ENDPOINT)
-    policy_file = open(ALERTRULE_FILE, 'wb') 
+    if SUPPORT_API_MODE:
+        body_params = {"customerName": "%s" % CUSTOMER_NAME}
+        request_data = json.dumps(body_params)
+        api_response = make_api_call('POST', '%s/_support/alert/rule' % PRISMA_API_ENDPOINT, request_data)
+    else:
+        api_response = make_api_call('GET', '%s/v2/alert/rule' % PRISMA_API_ENDPOINT)
+    policy_file = open(ALERTRULE_FILE, 'wb')
     policy_file.write(api_response)
     policy_file.close()
 
 def get_integrations():
-    api_response = make_api_call('GET', '%s/integration' % PRISMA_API_ENDPOINT)
-    policy_file = open(INTEGRATION_FILE, 'wb') 
+    if SUPPORT_API_MODE:
+        body_params = {"customerName": "%s" % CUSTOMER_NAME}
+        request_data = json.dumps(body_params)
+        api_response = make_api_call('POST', '%s/_support/integration' % PRISMA_API_ENDPOINT, request_data)
+    else:
+        api_response = make_api_call('GET', '%s/integration' % PRISMA_API_ENDPOINT)
+    policy_file = open(INTEGRATION_FILE, 'wb')
     policy_file.write(api_response)
     policy_file.close()
 
@@ -336,7 +378,7 @@ for policy in policy_list:
 # Loop through all Alerts and collect the details of each Alert.
 # Some details come from the Alert, some from the associated Policy.
 ##########################################################################################
-  
+
 with open(ALERT_FILE, 'r') as f:
   alert_list = json.load(f)
 
