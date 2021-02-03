@@ -55,49 +55,52 @@ args = pc_parser.parse_args()
 
 ####
 
-DEBUG_MODE = args.debug
-
-RUN_MODE = args.mode
+DEBUG_MODE          = args.debug
+RUN_MODE            = args.mode
 PRISMA_API_ENDPOINT = args.url        # or os.environ.get('PRISMA_API_ENDPOINT')
 PRISMA_ACCESS_KEY   = args.access_key # or os.environ.get('PRISMA_ACCESS_KEY')
 PRISMA_SECRET_KEY   = args.secret_key # or os.environ.get('PRISMA_SECRET_KEY')
-PRISMA_API_HEADERS = {
+PRISMA_API_HEADERS  = {
     'Accept': 'application/json; charset=UTF-8',
     'Content-Type': 'application/json'
 }
-PRISMA_API_REQUEST_TIMEOUTS = (30, 600) # (CONNECT, READ)
-CUSTOMER_NAME = args.customer_name
-CLOUD_ACCOUNT_ID = args.cloud_account
-
+API_TIMEOUTS      = (60, 600) # (CONNECT, READ)
+CUSTOMER_NAME     = args.customer_name
+CLOUD_ACCOUNT_ID  = args.cloud_account
+TIME_RANGE_AMOUNT = args.time_range_amount
+TIME_RANGE_UNIT   = args.time_range_unit
+TIME_RANGE_LABEL  = 'Time Range - Past %s %s' % (TIME_RANGE_AMOUNT, TIME_RANGE_UNIT.capitalize()) 
+ASSET_FILE        = '%s-assets.txt' % CUSTOMER_NAME
 POLICY_FILE       = '%s-policies.txt' % CUSTOMER_NAME
 ALERT_FILE        = '%s-alerts.txt' % CUSTOMER_NAME
-ASSET_FILE        = '%s-assets.txt' % CUSTOMER_NAME
 USER_FILE         = '%s-users.txt' % CUSTOMER_NAME
 ACCOUNT_FILE      = '%s-accounts.txt' % CUSTOMER_NAME
 ACCOUNTGROUP_FILE = '%s-accountgroups.txt' % CUSTOMER_NAME
 ALERTRULE_FILE    = '%s-alertrules.txt' % CUSTOMER_NAME
 INTEGRATION_FILE  = '%s-integrations.txt' % CUSTOMER_NAME
-
-TIME_RANGE_AMOUNT = args.time_range_amount
-TIME_RANGE_UNIT = args.time_range_unit
-TIME_RANGE_LABEL = 'Time Range - Past %s %s' % (TIME_RANGE_AMOUNT, TIME_RANGE_UNIT.capitalize()) 
+DATA_FILES        = [ASSET_FILE, POLICY_FILE, ALERT_FILE, USER_FILE, ACCOUNT_FILE, ACCOUNTGROUP_FILE, ACCOUNTGROUP_FILE, INTEGRATION_FILE]
 
 ##########################################################################################
 # Utilities.
 ##########################################################################################
+
+def output(data=''):
+    print(data)
+
+####
 
 def make_api_call(method, url, requ_data = None):
     try:
         requ = requests.Request(method, url, data = requ_data, headers = PRISMA_API_HEADERS)
         prep = requ.prepare()
         sess = requests.Session()
-        resp = sess.send(prep, timeout=(PRISMA_API_REQUEST_TIMEOUTS))
+        resp = sess.send(prep, timeout=(API_TIMEOUTS))
         if resp.status_code == 200:
             return resp.content
         else:
             return {}
     except RequestException as e:
-        print('Error with API: %s: %s' % (url, str(e)))
+        output('Error with API: %s: %s' % (url, str(e)))
         sys.exit()
 
 ####
@@ -111,7 +114,7 @@ def get_prisma_login():
     resp_data = json.loads(api_response)
     token = resp_data.get('token')
     if not token:
-        print('Error with API Login: %s' % resp_data)
+        output('Error with API Login: %s' % resp_data)
         sys.exit()
     return token
 
@@ -129,7 +132,6 @@ def get_assets():
 
 def get_policies():
     api_response = make_api_call('GET', '%s/policy?policy.enabled=true' % PRISMA_API_ENDPOINT)
-    # api_response = make_api_call('GET', '%s/policy' % PRISMA_API_ENDPOINT)
     policy_file = open(POLICY_FILE, 'wb')
     policy_file.write(api_response)
     policy_file.close()
@@ -174,117 +176,84 @@ def get_integrations():
     policy_file.write(api_response)
     policy_file.close()
 
-##########################################################################################
+
 ##########################################################################################
 # Collect mode: Query the API and write the results to files.
-##########################################################################################
 ##########################################################################################
 
 if RUN_MODE == 'collect':
     if not PRISMA_API_ENDPOINT:
-        print("Error: '--url' is required with '--mode input'")
+        output("Error: '--url' is required with '--mode input'")
         sys.exit(0)
     if not PRISMA_ACCESS_KEY:
-        print("Error: '--access_key' is required with '--mode input'")
+        output("Error: '--access_key' is required with '--mode input'")
         sys.exit(0)
     if not PRISMA_SECRET_KEY:
-        print("Error: '--secret_key' is required with '--mode input'")
+        output("Error: '--secret_key' is required with '--mode input'")
         sys.exit(0)
 
-    print('Generating Prisma Cloud API Token')
+    output('Generating Prisma Cloud API Token')
     token = get_prisma_login()
     if DEBUG_MODE:
-        print()
-        print(token)
-        print()
+        output()
+        output(token)
+        output()
     PRISMA_API_HEADERS['x-redlock-auth'] = token
-    print()
+    output()
 
-    print('Querying Assets')
+    output('Querying Assets')
     get_assets()
-    print('Results saved as: %s' % ASSET_FILE)
-    print()
+    output('Results saved as: %s' % ASSET_FILE)
+    output()
 
-    print('Querying Policies')
+    output('Querying Policies')
     get_policies()
-    print('Results saved as: %s' % POLICY_FILE)
-    print()
+    output('Results saved as: %s' % POLICY_FILE)
+    output()
 
-    print('Querying Alerts')
+    output('Querying Alerts')
     get_alerts()
-    print('Results saved as: %s' % ALERT_FILE)
-    print()
+    output('Results saved as: %s' % ALERT_FILE)
+    output()
 
-    print('Querying Users')
+    output('Querying Users')
     get_users()
-    print('Results saved as: %s' % USER_FILE)
-    print()
+    output('Results saved as: %s' % USER_FILE)
+    output()
 
-    print('Querying Accounts')
+    output('Querying Accounts')
     get_accounts()
-    print('Results saved as: %s' % ACCOUNT_FILE)
-    print()
+    output('Results saved as: %s' % ACCOUNT_FILE)
+    output()
 
-    print('Querying Account Groups')
+    output('Querying Account Groups')
     get_accountgroups()
-    print('Results saved as: %s' % ACCOUNTGROUP_FILE)
-    print()
+    output('Results saved as: %s' % ACCOUNTGROUP_FILE)
+    output()
 
-    print('Querying Alert Rules')
+    output('Querying Alert Rules')
     get_alertrules()
-    print('Results saved as: %s' % ALERTRULE_FILE)
-    print()
+    output('Results saved as: %s' % ALERTRULE_FILE)
+    output()
 
-    print('Querying Integrations')
+    output('Querying Integrations')
     get_integrations()
-    print('Results saved as: %s' % INTEGRATION_FILE)
-    print()
+    output('Results saved as: %s' % INTEGRATION_FILE)
+    output()
 
-    print("Run '%s --customer_name %s --mode process' to process the collected data." % (os.path.basename(__file__), CUSTOMER_NAME))
-    print("To save the processed data to a file, redirect the above command by adding ' > {name}-summary.tab'".format(name = CUSTOMER_NAME))
+    output("Run '%s --customer_name %s --mode process' to process the collected data." % (os.path.basename(__file__), CUSTOMER_NAME))
+    output("To save the processed data to a file, redirect the above command by adding ' > {name}-summary.tab'".format(name = CUSTOMER_NAME))
     sys.exit(0)
 
-##########################################################################################
+
 ##########################################################################################
 # Inspect mode: Read the result files and output summary results.
 ##########################################################################################
-##########################################################################################
 
-##########################################################################################
-# Validation.
-##########################################################################################
-
-if not os.path.isfile(POLICY_FILE):
-    print('Error: Policy file does not exist: %s' % POLICY_FILE)
-    sys.exit(1)
-
-if not os.path.isfile(ALERT_FILE):
-    print('Error: Alert file does not exist: %s' % ALERT_FILE)
-    sys.exit(1)
-
-if not os.path.isfile(ASSET_FILE):
-    print('Error: Asset file does not exist: %s' % ASSET_FILE)
-    sys.exit(1)
-
-if not os.path.isfile(USER_FILE):
-    print('Error: User file does not exist: %s' % USER_FILE)
-    sys.exit(1)
-
-if not os.path.isfile(ACCOUNT_FILE):
-    print('Error: Account file does not exist: %s' % ACCOUNT_FILE)
-    sys.exit(1)
-
-if not os.path.isfile(ACCOUNTGROUP_FILE):
-    print('Error: Account Group file does not exist: %s' % ACCOUNTGROUP_FILE)
-    sys.exit(1)
-
-if not os.path.isfile(ALERTRULE_FILE):
-    print('Error: Alert Rule file does not exist: %s' % ALERTRULE_FILE)
-    sys.exit(1)
-
-if not os.path.isfile(INTEGRATION_FILE):
-    print('Error: Integration file does not exist: %s' % INTEGRATION_FILE)
-    sys.exit(1)
+for data_file in DATA_FILES:
+    if not os.path.isfile(data_file):
+      output('Error: Data file does not exist: %s' % data_file)
+      sys.exit(1)
 
 ##########################################################################################
 # Counters and Structures.
@@ -303,24 +272,31 @@ policy_counts = {
 # Duplication between the above and below intended for future error checking.
 
 alert_counts = {
-    'open':             0,
-    'custom':           0,
-    'resolved':         0,
-    'resolved_deleted': 0,
-    'resolved_updated': 0,
-    'resolved_high':    0,
-    'resolved_medium':  0,
-    'resolved_low':     0,
-    'shiftable':        0,
-    'remediable':       0,
+    'open':                0,
+    'open_high':           0,
+    'open_medium':         0,
+    'open_low':            0,
+    'custom':              0,
+    'default':             0,
+    'resolved':            0,
+    'resolved_deleted':    0,
+    'resolved_updated':    0,
+    'resolved_high':       0,
+    'resolved_medium':     0,
+    'resolved_low':        0,
+    'remediable':          0,
+    'remediable_open':     0,
+    'remediable_resolved': 0,
+    'shiftable':           0,
 }
 
 policies = {}
-alerts_by_compliance_standard = {}
-alerts_by_policy = {}
+alerts_by_standard = {}
+alerts_by_policy   = {}
 
 ##########################################################################################
 # Loop through all Policies and collect the details of each Policy.
+# Do not use the alert count from this endpoint, as they are not scoped to a time range.
 ##########################################################################################
 
 with open(POLICY_FILE, 'r') as f:
@@ -328,7 +304,7 @@ with open(POLICY_FILE, 'r') as f:
 
 for policy in policy_list:
     policyId = policy['policyId']
-    # Transform Policies from policy_list to policies.
+    # Transform policies from policy_list into policies.
     if not policyId in policies:
         policies[policyId] = {}
     policies[policyId]['policyName'] = policy['name']
@@ -337,7 +313,7 @@ for policy in policy_list:
     policies[policyId]['policyShiftable'] = 'build' in policy['policySubTypes']
     policies[policyId]['policyRemediable'] = policy['remediable']
     policies[policyId]['policyOpenAlertsCount'] = policy['openAlertsCount']
-    policies[policyId]['systemDefault'] = policy['systemDefault']
+    policies[policyId]['policySystemDefault'] = policy['systemDefault']
     # Create sets and lists of Compliance Standards to create a sorted, unique list of counters for each Compliance Standard.
     compliance_standards_set = set()
     policies[policyId]['complianceStandards'] = list()
@@ -349,8 +325,8 @@ for policy in policy_list:
         policies[policyId]['complianceStandards'] = compliance_standards_list
         # Initialize Compliance Standard Alert Counts (to avoid an error with += when the variable is undefined).
         for standard in compliance_standards_list:
-            if not standard in alerts_by_compliance_standard:
-                alerts_by_compliance_standard[standard] = {'high': 0, 'medium': 0, 'low': 0}
+            if not standard in alerts_by_standard:
+                alerts_by_standard[standard] = {'high': 0, 'medium': 0, 'low': 0}
 
 ##########################################################################################
 # Loop through all Alerts and collect the details of each Alert.
@@ -363,7 +339,8 @@ with open(ALERT_FILE, 'r') as f:
 for alert in alert_list:
     policyId = alert['policy']['policyId']
     if not policyId in policies:
-        print('Skipping Alert: Policy Deleted or Disabled: Policy ID: %s' % policyId)
+        if DEBUG_MODE:
+            output('Skipping Alert: Policy Deleted or Disabled: Policy ID: %s' % policyId)
         continue
     policyName = policies[policyId]['policyName']
     # Transform alerts from alert_list to alerts_by_policy, and initialize Alert Count (to avoid an error with += when the variable is undefined).
@@ -371,7 +348,7 @@ for alert in alert_list:
         alerts_by_policy[policyName] = {'policyId': policyId, 'alertCount': 0}
     # Increment Alert Count for each associated Compliance Standard
     for standard in policies[policyId]['complianceStandards']:
-        alerts_by_compliance_standard[standard][policies[policyId]['policySeverity']] += 1
+        alerts_by_standard[standard][policies[policyId]['policySeverity']] += 1
     # Increment Alert Count for associated Policy
     alerts_by_policy[policyName]['alertCount'] += 1
     # Increment Policies by Severity
@@ -387,16 +364,19 @@ for alert in alert_list:
         if alert['reason'] == 'RESOURCE_UPDATED':
             alert_counts['resolved_updated'] += 1
     # Increment Alerts by Severity
-    alert_counts['resolved_%s' % policies[policyId]['policySeverity']] += 1
+    alert_counts['%s_%s' % (alert['status'], policies[policyId]['policySeverity'])] += 1
     # Increment Alerts with IaC
     if policies[policyId]['policyShiftable']:
         alert_counts['shiftable'] += 1
 	# Increment Alerts with Remediation
     if alert['policy']['remediable']:
         alert_counts['remediable'] += 1
-    # Increment Alerts for Custom Policies
-    if alert['policy']['systemDefault'] == True:
+        alert_counts['remediable_%s' % alert['status']] += 1
+    # Increment Alerts for Custom vs Default Policies
+    if policies[policyId]['policySystemDefault'] == True:
         alert_counts['custom'] += 1
+    else:
+        alert_counts['default'] += 1
 
 with open(ASSET_FILE, 'r') as f:
   asset_list = json.load(f)
@@ -418,17 +398,17 @@ with open(INTEGRATION_FILE, 'r') as f:
 
 # Totals
 
-asset_count_total                   = asset_list['summary']['totalResources']
+asset_count              = asset_list['summary']['totalResources']
 
-alerts_by_compliance_standard_total = len(alerts_by_compliance_standard)
-alerts_by_policy_total              = len(alerts_by_policy)
-alert_count_total                   = len(alert_list)
-policy_count_total                  = len(policy_list)
-user_count_total                    = len(user_list)
-account_count_total                 = len(account_list)
-accountgroup_count_total            = len(accountgroup_list)
-alertrule_count_total               = len(alertrule_list)
-integration_count_total             = len(integration_list)
+alerts_by_standard_count = len(alerts_by_standard)
+alerts_by_policy_count   = len(alerts_by_policy)
+alert_count              = len(alert_list)
+policy_count             = len(policy_list)
+user_count               = len(user_list)
+account_count            = len(account_list)
+accountgroup_count       = len(accountgroup_list)
+alertrule_count          = len(alertrule_list)
+integration_count        = len(integration_list)
 
 ##########################################################################################
 # Output tables and totals.
@@ -436,96 +416,128 @@ integration_count_total             = len(integration_list)
 
 # Output Compliance Standards with Alerts
 
-print()
-print('#################################################################################')
-print('# SHEET: By Compliance Standard, Open and Closed Alerts, %s' % TIME_RANGE_LABEL)
-print('#################################################################################')
-print()
-print('%s\t%s\t%s\t%s' % ('Compliance Standard', 'High-Severity Alert Count', 'Medium-Severity Alert Count', 'Low-Severity Alert Count'))																						
-for standard in sorted(alerts_by_compliance_standard):
-    print('%s\t%s\t%s\t%s' % (standard, alerts_by_compliance_standard[standard]['high'], alerts_by_compliance_standard[standard]['medium'], alerts_by_compliance_standard[standard]['low']))
+output()
+output('#################################################################################')
+output('# SHEET: By Compliance Standard, Open and Closed Alerts, %s' % TIME_RANGE_LABEL)
+output('#################################################################################')
+output()
+output('%s\t%s\t%s\t%s' % ('Compliance Standard', 'Alerts High', 'Alerts Medium', 'Alerts Low, Alerts High - Per 100 Assets, Alerts Medium - Per 100 Assets, Alerts Low - Per 100 Assets'))																						
+for standard_name in sorted(alerts_by_standard):
+    alert_count_high                  = alerts_by_standard[standard_name]['high']
+    alert_count_medium                = alerts_by_standard[standard_name]['medium']
+    alert_count_low                   = alerts_by_standard[standard_name]['low']
+    alert_count_high_per_100_assets   = round((alert_count_high / asset_count) * 100)
+    alert_count_medium_per_100_assets = round((alert_count_medium / asset_count) * 100)
+    alert_count_low_per_100_assets    = round((alert_count_low / asset_count) * 100)
+    output('%s\t%s\t%s\t%s\t%s\t%s\t%s' % (standard_name, alert_count_high, alert_count_medium, alert_count_low, alert_count_high_per_100_assets, alert_count_medium_per_100_assets, alert_count_low_per_100_assets))
 
 # Output Policies with Alerts
 
-print()
-print('#################################################################################')
-print('# SHEET: By Policy, Open and Closed Alerts, %s' % TIME_RANGE_LABEL)
-print('#################################################################################')
-print()
-print('%s\t%s\t%s\t%s\t%s\t%s\t%s' % ('policyName', 'policySeverity', 'policyType', 'policyShiftable', 'policyRemediable', 'alertCount', 'policyComplianceStandards') )
-for policy in sorted(alerts_by_policy):
-    policyId                    = alerts_by_policy[policy]['policyId']
-    policyName                  = policies[policyId]['policyName']
-    policySeverity              = policies[policyId]['policySeverity']
-    policyType                  = policies[policyId]['policyType']
-    policyShiftable             = policies[policyId]['policyShiftable']
-    policyRemediable            = policies[policyId]['policyRemediable']
-    alert_count                 = alerts_by_policy[policy]['alertCount']
-    policy_compliance_standards = ','.join(map(str, policies[policyId]['complianceStandards']))
-    print('%s\t%s\t%s\t%s\t%s\t%s\t"%s"' % (policyName, policySeverity, policyType, policyShiftable, policyRemediable, alert_count, policy_compliance_standards))
+output()
+output('#################################################################################')
+output('# SHEET: By Policy, Open and Closed Alerts, %s' % TIME_RANGE_LABEL)
+output('#################################################################################')
+output()
+output('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s' % ('Policy', 'Severity', 'Type', 'With IAC', 'With Remediation', 'Alert Count', 'Alert Count - Per 100 Assets', 'Compliance Standards') )
+for policy_name in sorted(alerts_by_policy):
+    policyId                          = alerts_by_policy[policy_name]['policyId']
+    policy_severity                   = policies[policyId]['policySeverity']
+    policy_type                       = policies[policyId]['policyType']
+    policy_is_shiftable               = policies[policyId]['policyShiftable']
+    policy_is_remediable              = policies[policyId]['policyRemediable']
+    policy_alert_count                = alerts_by_policy[policy_name]['alertCount']
+    policy_alert_count_per_100_assets = round((policy_alert_count / asset_count) * 100)
+    policy_standards_list             = ','.join(map(str, policies[policyId]['complianceStandards']))
+    output('%s\t%s\t%s\t%s\t%s\t%s\t%s\t"%s"' % (policy_name, policy_severity, policy_type, policy_is_remediable, policy_is_remediable, policy_alert_count, policy_alert_count_per_100_assets, policy_standards_list))
 
 # Output Summary
 
-print()
-print('#################################################################################')
-print('# SHEET: Summary, Open and Closed Alerts, %s' % TIME_RANGE_LABEL)
-print('#################################################################################')
-print()
-print("Compliance Standard with Alerts: Total\t%s" % alerts_by_compliance_standard_total)
-print()
-print("Policies with Alerts: Total\t%s"            % alerts_by_policy_total)
-print()
-print("Alerts: Open\t%s"               % alert_counts['open'])
-print("Alerts: Total\t%s"              % alert_count_total)
-print()
-print("Alerts: Resolved\t%s"           % alert_counts['resolved'])
-print("Alerts: Resolved: Percent\t%s"  % math.trunc(alert_count_total / alert_counts['resolved']) )
-print("Alerts: Resolved by Delete\t%s" % alert_counts['resolved_deleted'])
-print("Alerts: Resolved by Update\t%s" % alert_counts['resolved_updated'])
-print()
-print("Alerts: High-Severity\t%s"      % alert_counts['resolved_high'])
-print("Alerts: Medium-Severity\t%s"    % alert_counts['resolved_medium'])
-print("Alerts: Low-Severity\t%s"       % alert_counts['resolved_low'])
-print()
-print("Alerts: Anomaly\t%s"            % policy_counts['anomaly'])
-print("Alerts: Config\t%s"             % policy_counts['config'])
-print("Alerts: Network\t%s"            % policy_counts['network'])
-print()
-print("Alerts: with IaC\t%s"                  % alert_counts['shiftable'])
-print("Alerts: with IaC: Percent\t%s"         % math.trunc(alert_count_total / alert_counts['shiftable']) )
-print()
-print("Alerts: with Remediation\t%s"          % alert_counts['remediable'])
-print("Alerts: with Remediation: Percent\t%s" % math.trunc(alert_count_total / alert_counts['remediable']) )
-print()
-print("Alerts: Custom Policies\t%s"           % alert_counts['custom'])
-print
+output()
+output('#################################################################################')
+output('# SHEET: Summary')
+output('#################################################################################')
+output()
+output("Number of Assets monitored:\t%s" % asset_count)
+output()
 
-print()
-print('#################################################################################')
-print('# SHEET: Summary')
-print('#################################################################################')
-print()
-print("Assets: Total\t%s"                % asset_count_total)
-print()
-print("Policies: Custom\t%s"             % sum(x.get('systemDefault') == False for x in policy_list) )
-print("Policies: Default\t%s"            % sum(x.get('systemDefault') == True for x in policy_list) )
-print("Policies: Total\t%s"              % policy_count_total)
-print()
-print("Users: Disabled\t%s"              % sum(x.get('enabled') == False for x in user_list) )
-print("Users: Enabled\t%s"               % sum(x.get('enabled') == True for x in user_list) )
-print("Users: Total\t%s"                 % user_count_total)
-print()
-print("Accounts: Disabled\t%s"           % sum(x.get('enabled') == False for x in account_list) )
-print("Accounts: Enabled\t%s"            % sum(x.get('enabled') == True for x in account_list) )
-print("Accounts: Total\t%s"              % account_count_total)
-print()
-print("Account Groups: Total\t%s"        % accountgroup_count_total)
-print()
-print("Alert Rules: Disabled\t%s"        % sum(x.get('enabled') == False for x in alertrule_list))
-print("Alert Rules: Enabled\t%s"         % sum(x.get('enabled') == True for x in alertrule_list))
-print("Alert Rules: Total\t%s"           % alertrule_count_total)
-print()
-print("Integrations: Disabled\t%s"       % sum(x.get('enabled') == False for x in integration_list) )
-print("Integrations: Enabled\t%s"        % sum(x.get('enabled') == True for x in integration_list) )
-print("Integrations: Total\t%s"          % integration_count_total)
+output("Number of Cloud Accounts:\t%s" % account_count)
+output("Cloud Accounts Disabled\t%s"   % sum(x.get('enabled') == False for x in account_list))
+output("Cloud Accounts Enabled\t%s"    % sum(x.get('enabled') == True for x in account_list))
+output()
 
+output("Number of Cloud Account Groups:\t%s" % accountgroup_count)
+output()
+
+output("Number of Alert Rules\t%s" % alertrule_count)
+output("Alert Rules Disabled\t%s"  % sum(x.get('enabled') == False for x in alertrule_list))
+output("Alert Rules Enabled\t%s"   % sum(x.get('enabled') == True for x in alertrule_list))
+output()
+
+output("Number of Integrations\t%s" % integration_count)
+output("Integrations Disabled\t%s"  % sum(x.get('enabled') == False for x in integration_list))
+output("Integrations Enabled\t%s"   % sum(x.get('enabled') == True for x in integration_list))
+
+output("Number of Policies\t%s" % policy_count)
+output("Policies Custom\t%s"    % sum(x.get('systemDefault') == False for x in policy_list))
+output("Policies Default\t%s"   % sum(x.get('systemDefault') == True for x in policy_list))
+output()
+
+output("Number of Users:\t%s" % user_count)
+output("Users Disabled\t%s"   % sum(x.get('enabled') == False for x in user_list))
+output("Users Enabled\t%s"    % sum(x.get('enabled') == True for x in user_list))
+output()
+
+output('#################################################################################')
+output('# SHEET: Summary, Open and Closed Alerts, %s' % TIME_RANGE_LABEL)
+output('#################################################################################')
+output()
+
+output("Number of Compliance Standards with Alerts:\t%s" % alerts_by_standard_count)
+output()
+
+output("Number of Policies with Alerts: Total\t%s" % alerts_by_policy_count)
+output()
+
+output("Number of Alerts\t%s" % alert_count)
+output("Alerts per 100 Assets\t%s" % round((alert_count / asset_count) * 100))
+output()
+output("Open Alerts\t%s"                % alert_counts['open'])
+output("Open Alerts per 100 Assets\t%s" % round((alert_counts['open'] / asset_count) * 100))
+output("Open Alerts as Percent\t%s%s"   % (round((alert_counts['open']/alert_count) * 100), '%'))
+output()
+output("Open Alerts High-Severity\t%s"                  % alert_counts['open_high'])
+output("Open Alerts High-Severity per 100 Assets\t%s"   % round((alert_counts['open_high'] / asset_count) * 100))
+output("Open Alerts Medium-Severity\t%s"                % alert_counts['open_medium'])
+output("Open Alerts Medium-Severity per 100 Assets\t%s" % round((alert_counts['open_medium'] / asset_count) * 100))
+output("Open Alerts Low-Severity\t%s"                   % alert_counts['open_low'])
+output("Open Alerts Low-Severity per 100 Assets\t%s"    % round((alert_counts['open_low'] / asset_count) * 100))
+output()
+output("Resolved Alerts\t%s"                % alert_counts['resolved'])
+output("Resolved Alerts per 100 Assets\t%s" % round((alert_counts['resolved'] / asset_count) * 100))
+output("Resolved Alerts as Percent\t%s%s"   % (round((alert_counts['resolved']/alert_count) * 100), '%'))
+output()
+output("Resolved By Delete\t%s" % alert_counts['resolved_deleted'])
+output("Resolved By Update\t%s" % alert_counts['resolved_updated'])
+output()
+output("Resolved Alerts High-Severity\t%s"                  % alert_counts['resolved_high'])
+output("Resolved Alerts High-Severity per 100 Assets\t%s"   % round((alert_counts['resolved_high'] / asset_count) * 100))
+output("Resolved Alerts Medium-Severity\t%s"                % alert_counts['resolved_medium'])
+output("Resolved Alerts Medium-Severity per 100 Assets\t%s" % round((alert_counts['resolved_medium'] / asset_count) * 100))
+output("Resolved Alerts Low-Severity\t%s"                   % alert_counts['resolved_low'])
+output("Resolved Alerts Low-Severity per 100 Assets\t%s"    % round((alert_counts['resolved_low'] / asset_count) * 100))
+output()
+output("Anomaly Alerts\t%s" % policy_counts['anomaly'])
+output("Config Alerts\t%s"  % policy_counts['config'])
+output("Network Alerts\t%s" % policy_counts['network'])
+output()
+output("Alerts with IaC\t%s"                % alert_counts['shiftable'])
+output("Alerts with IaC per 100 Assets\t%s" % round((alert_counts['shiftable'] / asset_count) * 100))
+output("Alerts with IaC as Percent\t%s%s"   % (round((alert_counts['shiftable']/alert_count) * 100), '%'))
+output()
+output("Alerts with Remediation\t%s"                % alert_counts['remediable'])
+output("Alerts with Remediation per 100 Assets\t%s" % round((alert_counts['remediable'] / asset_count) * 100))
+output("Alerts with Remediation as Percent\t%s%s"   % (round((alert_counts['remediable']/alert_count) * 100), '%'))
+output()
+output("Alerts Generated by Custom Policies\t%s"  % alert_counts['custom'])
+output("Alerts Generated by Default Policies\t%s" % alert_counts['default'])
+output()
