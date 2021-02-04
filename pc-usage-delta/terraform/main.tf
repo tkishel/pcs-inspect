@@ -217,7 +217,7 @@ resource "aws_iam_role_policy_attachment" "pc_usage_delta_s3" {
   role       = aws_iam_role.pc_usage_delta_role.name
 }
 
-data "aws_iam_policy_document" "pc_usage_delta_s3_assume_role" {
+data "aws_iam_policy_document" "pc_usage_delta_assume_role" {
   statement {
     actions       = ["sts:AssumeRole"]
     effect        = "Allow"
@@ -230,7 +230,7 @@ data "aws_iam_policy_document" "pc_usage_delta_s3_assume_role" {
 
 resource "aws_iam_role" "pc_usage_delta_role" {
   name               = "pc_usage_delta_role"
-  assume_role_policy = data.aws_iam_policy_document.pc_usage_delta_s3_assume_role.json
+  assume_role_policy = data.aws_iam_policy_document.pc_usage_delta_assume_role.json
   tags               = { storestatus = "dnd" }
 }
 
