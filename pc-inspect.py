@@ -57,6 +57,7 @@ args = pc_parser.parse_args()
 ##########################################################################################
 # Configure.
 ##########################################################################################
+#     'Accept': 'application/json; charset=UTF-8', 
 
 DEBUG_MODE          = args.debug
 RUN_MODE            = args.mode
@@ -65,7 +66,7 @@ PRISMA_API_ENDPOINT = args.url        # or os.environ.get('PRISMA_API_ENDPOINT')
 PRISMA_ACCESS_KEY   = args.access_key # or os.environ.get('PRISMA_ACCESS_KEY')
 PRISMA_SECRET_KEY   = args.secret_key # or os.environ.get('PRISMA_SECRET_KEY')
 PRISMA_API_HEADERS  = {
-    'Accept': 'application/json; charset=UTF-8',
+    'Accept': 'application/json, text/plain, */*',
     'Content-Type': 'application/json'
 }
 API_TIMEOUTS      = (60, 600) # (CONNECT, READ)
@@ -125,35 +126,54 @@ def get_prisma_login():
         sys.exit()
     return token
 
-# SUPPORT_API_MODE for 'get_assets()' requires a '_support/v2/inventory' endpoint.
-# Maybe use: /_support/timeline/resource ?
-
+# SUPPORT_API_MODE:
+# Using '/_support/timeline/resource' in lieu of the required but not implemented '_support/v2/inventory' endpoint.
+    
 def get_assets():
-    if CLOUD_ACCOUNT_ID:
-        query_params = 'timeType=%s&timeAmount=%s&timeUnit=%s&cloud.account=%s' % ('relative', TIME_RANGE_AMOUNT, TIME_RANGE_UNIT, CLOUD_ACCOUNT_ID)
-    else:
-        query_params = 'timeType=%s&timeAmount=%s&timeUnit=%s' % ('relative', TIME_RANGE_AMOUNT, TIME_RANGE_UNIT)
     if SUPPORT_API_MODE:
-        api_response = bytes('{"summary": {"totalResources": 0}}', 'utf-8')
+        body_params = {}
+        body_params["customerName"] = "%s" % CUSTOMER_NAME
+        if CLOUD_ACCOUNT_ID:
+            body_params["accountIds"] = ["%s" % CLOUD_ACCOUNT_ID]
+        body_params['timeRange'] = {"value": {"unit": "%s" % TIME_RANGE_UNIT, "amount": TIME_RANGE_AMOUNT}, "type": "relative"}
+        request_data = json.dumps(body_params)
+        api_response = make_api_call('POST', '%s/_support/timeline/resource' % PRISMA_API_ENDPOINT, request_data)
+        api_response_json = json.loads(api_response)
+        if api_response_json[0] and 'resources' in api_response_json[0]:
+            api_response = bytes('{"summary": {"totalResources": %s}}' % api_response_json[0]['resources'], 'utf-8')
+        else:
+            api_response = bytes('{"summary": {"totalResources": 0}}', 'utf-8')
     else:
+        if CLOUD_ACCOUNT_ID:
+            query_params = 'timeType=%s&timeAmount=%s&timeUnit=%s&cloud.account=%s' % ('relative', TIME_RANGE_AMOUNT, TIME_RANGE_UNIT, CLOUD_ACCOUNT_ID)
+        else:
+            query_params = 'timeType=%s&timeAmount=%s&timeUnit=%s' % ('relative', TIME_RANGE_AMOUNT, TIME_RANGE_UNIT)
         api_response = make_api_call('GET', '%s/v2/inventory?%s' % (PRISMA_API_ENDPOINT, query_params))
     alert_file = open(ASSET_FILE, 'wb')
     alert_file.write(api_response)
     alert_file.close()
+
+# SUPPORT_API_MODE:
+# Unfortunately, we need to open alert counts for all policies (as provided by '/policy'), but '/_support/policy' doesn't return open alert counts.
+# And '/_support/alert/policy' does return an alertCount, but I cannot tell if that is all (open or closed) or just open, and returns fewer policies than '_support/policy' given the same parameters. 
 
 def get_policies():
     if SUPPORT_API_MODE:
         body_params = {"customerName": "%s" % CUSTOMER_NAME}
         request_data = json.dumps(body_params)
         api_response = make_api_call('POST', '%s/_support/policy?policy.enabled=true' % PRISMA_API_ENDPOINT, request_data)
+        policy_file = open(POLICY_FILE, 'wb')
+        policy_file.write(api_response)
+        policy_file.close()
     else:
         api_response = make_api_call('GET', '%s/policy?policy.enabled=true' % PRISMA_API_ENDPOINT)
-    policy_file = open(POLICY_FILE, 'wb')
-    policy_file.write(api_response)
-    policy_file.close()
+        policy_file = open(POLICY_FILE, 'wb')
+        policy_file.write(api_response)
+        policy_file.close()
 
-# SUPPORT_API_MODE for 'get_alerts()' requires a valid '_support/alert' endpoint.
-# Currently '_support/alert' returns 'getAlert()' instead of 'getAlerts()' backend function names.
+# SUPPORT_API_MODE for 'get_alerts()' requires a not implemented '/_support/v2/alert(s)' endpoint.
+# The '/_support/alert' endpoint returns 'getAlert()' instead of 'getAlerts()'.
+# So, the query will error, and not return alert results.
 
 def get_alerts():
     body_params = {}
@@ -163,29 +183,34 @@ def get_alerts():
     if SUPPORT_API_MODE:
         body_params["customerName"] = "%s" % CUSTOMER_NAME
         request_data = json.dumps(body_params)
-        api_response = make_api_call('POST', '%s/_support/alert' % PRISMA_API_ENDPOINT, request_data)
+        api_response = make_api_call('POST', '%s/_support/v2/alerts_not_implemented' % PRISMA_API_ENDPOINT, request_data)
         alert_file = open(ALERT_FILE, 'wb')
         alert_file.write(api_response)
+        alert_file.close()
     else:
         body_params['limit'] = 100
-        offset = 0
         request_data = json.dumps(body_params)
         api_response = make_api_call('POST', '%s/v2/alert' % PRISMA_API_ENDPOINT, request_data)
         api_response_json = json.loads(api_response)
         api_response_array = api_response_json['items']
         alert_file = open(ALERT_FILE, 'w')
-        while api_response_json['nextPageToken']:
-            body_params['offset'] = offset
+        while 'nextPageToken' in api_response_json:
+            sys.stdout.write('.')
+            sys.stdout.flush()
+            body_params = {}
+            body_params['limit'] = 100
             body_params['pageToken'] = api_response_json['nextPageToken']
             request_data = json.dumps(body_params)
-            api_response = make_api_call('POST', '%s/_support/alert' % PRISMA_API_ENDPOINT, request_data)
+            api_response = make_api_call('POST', '%s/v2/alert' % PRISMA_API_ENDPOINT, request_data)
             api_response_json = json.loads(api_response)
-            print(api_response)
-            api_response_array_temp = api_response_json['items']
-            api_response_array.extend(api_response_array_temp)
-            alert_file.write(api_response_array)
-            offset += body_params['limit']
-    alert_file.close()
+            if 'items' in api_response_json:
+                api_response_array_page = api_response_json['items']
+                api_response_array.extend(api_response_array_page)
+            else:
+                print(api_response_json)
+        api_response = json.dumps(api_response_array, indent=2, separators=(', ', ': '))
+        alert_file.write(api_response)
+        alert_file.close()
 
 def get_users():
     if SUPPORT_API_MODE:
@@ -266,9 +291,6 @@ if RUN_MODE == 'collect':
     PRISMA_API_HEADERS['x-redlock-auth'] = token
     output()
 
-    get_alerts()
-    sys.exit()
-
     output('Querying Assets')
     get_assets()
     output('Results saved as: %s' % ASSET_FILE)
@@ -279,8 +301,9 @@ if RUN_MODE == 'collect':
     output('Results saved as: %s' % POLICY_FILE)
     output()
 
-    output('Querying Alerts')
+    output('Querying Alerts (please wait)')
     get_alerts()
+    output()
     output('Results saved as: %s' % ALERT_FILE)
     output()
 
@@ -328,7 +351,7 @@ for data_file in DATA_FILES:
 
 policies = {}
 
-# For use when we are unable to retrieve alerts from the alerts endpoint.
+# '_from_policy' variables for use when we are unable to retrieve open and closed alerts from the alerts endpoint.
 
 compliance_standard_open_alert_counts_from_policy = {}
 policy_open_alert_counts_from_policy              = {}
@@ -424,6 +447,8 @@ for policy in policy_list:
     policyId = policy['policyId']
     if not policyId in policies:
         policies[policyId] = {}
+    if not 'openAlertsCount' in policy:
+        policy['openAlertsCount'] = 0
     policies[policyId]['policyName'] = policy['name']
     policies[policyId]['policySeverity'] = policy['severity']
     policies[policyId]['policyType'] = policy['policyType']
@@ -443,24 +468,24 @@ for policy in policy_list:
         for standard in compliance_standards_list:
             if not standard in compliance_standard_alert_counts_from_alerts:
                 compliance_standard_open_alert_counts_from_policy[standard] = {'high': 0, 'medium': 0, 'low': 0}
-            compliance_standard_open_alert_counts_from_policy[standard][policy['severity']] += policy['openAlertsCount']
+            compliance_standard_open_alert_counts_from_policy[standard][policy['severity']] += policies[policyId]['policyOpenAlertsCount']
             # Initialize `compliance_standard_alert_counts_from_alerts` now, to avoid an error with incrementing when the variable is undefined, when processing `alert_list` later.
             if not standard in compliance_standard_alert_counts_from_alerts:
                 compliance_standard_alert_counts_from_alerts[standard] = {'high': 0, 'medium': 0, 'low': 0}
     # Collect policies here, in case we are unable to retrieve open and closed alerts from the alerts endpoint.
-    policy_open_alert_counts_from_policy[policy['name']] = {'policyId': policyId, 'openAlertsCount': policy['openAlertsCount']}
+    policy_open_alert_counts_from_policy[policy['name']] = {'policyId': policyId, 'openAlertsCount': policies[policyId]['policyOpenAlertsCount']}
     # Collect open alerts here, in case we are unable to retrieve open and closed alerts from the alerts endpoint.
-    open_alert_counts_from_policy['open'] += policy['openAlertsCount']
-    open_alert_counts_from_policy['open_%s' % policy['severity']] += policy['openAlertsCount']
-    open_alert_counts_from_policy[policy['policyType']] += policy['openAlertsCount']
+    open_alert_counts_from_policy['open'] += policies[policyId]['policyOpenAlertsCount']
+    open_alert_counts_from_policy['open_%s' % policy['severity']] += policies[policyId]['policyOpenAlertsCount']
+    open_alert_counts_from_policy[policy['policyType']] += policies[policyId]['policyOpenAlertsCount']
     if policies[policyId]['policyRemediable']:
-        open_alert_counts_from_policy['remediable'] += policy['openAlertsCount']
+        open_alert_counts_from_policy['remediable'] += policies[policyId]['policyOpenAlertsCount']
     if policies[policyId]['policyShiftable']:
-        open_alert_counts_from_policy['shiftable'] += policy['openAlertsCount']
+        open_alert_counts_from_policy['shiftable'] += policies[policyId]['policyOpenAlertsCount']
     if policies[policyId]['policySystemDefault'] == True:
-        open_alert_counts_from_policy['default'] += policy['openAlertsCount']
+        open_alert_counts_from_policy['default'] += policies[policyId]['policyOpenAlertsCount']
     else:
-        open_alert_counts_from_policy['custom'] += policy['openAlertsCount']        
+        open_alert_counts_from_policy['custom'] += policies[policyId]['policyOpenAlertsCount']        
 
 ##########################################################################################
 # Loop through all Alerts and collect the details of each Alert.
@@ -518,7 +543,7 @@ accountgroup_count       = len(accountgroup_list)
 alertrule_count          = len(alertrule_list)
 integration_count        = len(integration_list)
 
-# I'm sorry about this.
+# I'm sorry about all of this. Avoid ZeroDivisionError.
 
 if asset_count > 0:
     if alert_count > 0:
@@ -564,10 +589,16 @@ if alert_count > 0:
     shiftable_alerts_as_percent  = round((alert_detail_counts_from_alerts['shiftable']  / alert_count) * 100)
     remediable_alerts_as_percent = round((alert_detail_counts_from_alerts['remediable'] / alert_count) * 100)
 else:
-    open_alerts_as_percent       = round((open_alert_counts_from_policy['open']         / open_alert_counts_from_policy['open']) * 100)
-    resolved_alerts_as_percent   = 'N/A'
-    shiftable_alerts_as_percent  = round((open_alert_counts_from_policy['shiftable']    / open_alert_counts_from_policy['open']) * 100)
-    remediable_alerts_as_percent = round((open_alert_counts_from_policy['remediable']   / open_alert_counts_from_policy['open']) * 100)
+    if open_alert_counts_from_policy['open'] > 0:
+        open_alerts_as_percent       = round((open_alert_counts_from_policy['open']         / open_alert_counts_from_policy['open']) * 100)
+        resolved_alerts_as_percent   = 'N/A'
+        shiftable_alerts_as_percent  = round((open_alert_counts_from_policy['shiftable']    / open_alert_counts_from_policy['open']) * 100)
+        remediable_alerts_as_percent = round((open_alert_counts_from_policy['remediable']   / open_alert_counts_from_policy['open']) * 100)
+    else:
+        open_alerts_as_percent       = 'N/A'
+        resolved_alerts_as_percent   = 'N/A'
+        shiftable_alerts_as_percent  = 'N/A'
+        remediable_alerts_as_percent = 'N/A'
 
 ##########################################################################################
 # Output tables with results and totals.
@@ -727,6 +758,7 @@ output('########################################################################
 output()
 
 if alert_count < 1:
+    output("No alerts returned by the '/alert' endpoint, exiting.")
     sys.exit()
     
 output("Number of Compliance Standards with Alerts:\t%s" % compliance_standards_with_alerts_count)
