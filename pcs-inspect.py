@@ -274,6 +274,11 @@ def get_users():
     result_file.write(api_response)
     result_file.close()
 
+# TODO: Query for any accounts that are children of an organization via https://api.prismacloud.io/cloud/cloud_type/id/project
+#   "accountType": "organization",
+#   "cloudType": 
+#   "numberOfChildAccounts":
+
 def get_accounts():
     if SUPPORT_API_MODE:
         body_params = {"customerName": "%s" % CUSTOMER_NAME}
@@ -623,7 +628,7 @@ output('########################################################################
 output()
 output("Number of Assets:\t%s" % asset_count, OUTPUT_FILES['SUMMARY-OTHER'])
 output()
-output("Number of Cloud Accounts:\t%s" % len(DATA['ACCOUNTS']), OUTPUT_FILES['SUMMARY-OTHER'])
+output("Number of Cloud Accounts (Not Including Child Accounts):\t%s" % len(DATA['ACCOUNTS']), OUTPUT_FILES['SUMMARY-OTHER'])
 output("Cloud Accounts Disabled\t%s"   % sum(x.get('enabled') == False for x in DATA['ACCOUNTS']), OUTPUT_FILES['SUMMARY-OTHER'])
 output("Cloud Accounts Enabled\t%s"    % sum(x.get('enabled') == True for x in DATA['ACCOUNTS']), OUTPUT_FILES['SUMMARY-OTHER'])
 output()
