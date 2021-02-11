@@ -9,6 +9,7 @@
 *.tfvars
 
 *.conf
+*.csv
 *.tab
 *.txt
 
