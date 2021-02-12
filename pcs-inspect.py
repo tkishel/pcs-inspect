@@ -77,7 +77,7 @@ CUSTOMER_NAME     = args.customer_name
 CLOUD_ACCOUNT_ID  = args.cloud_account
 TIME_RANGE_AMOUNT = args.time_range_amount
 TIME_RANGE_UNIT   = args.time_range_unit
-TIME_RANGE_LABEL  = 'Time Range - Past %s %s' % (TIME_RANGE_AMOUNT, TIME_RANGE_UNIT.capitalize())
+TIME_RANGE_LABEL  = 'Past %s %s' % (TIME_RANGE_AMOUNT, TIME_RANGE_UNIT.capitalize())
 CUSTOMER_PREFIX   = re.sub(r'\W+', '', CUSTOMER_NAME).lower()
 RESULT_FILES = {
     'ASSETS':       '%s-assets.txt'        % CUSTOMER_PREFIX,
@@ -98,13 +98,14 @@ OUTPUT_FILES = {
     'SUMMARY-ALL-ALERTS':    '%s-summary-all.csv'           % CUSTOMER_PREFIX,
     'SUMMARY-OTHER':         '%s-summary-all.csv'           % CUSTOMER_PREFIX
 }
+NO_STDOUT = True
 
 ##########################################################################################
 # Helpers.
 ##########################################################################################
 
-def output(output_data='', file_name=None, to_stdout=True):
-    if to_stdout or DEBUG_MODE:
+def output(output_data='', file_name=None, suppress_stdout=False):
+    if suppress_stdout == False or DEBUG_MODE:
         print(output_data)
     if file_name:
         append_file(file_name, output_data)
@@ -539,6 +540,8 @@ alert_totals_by_alert = {
     'resolved_high':       0,
     'resolved_medium':     0,
     'resolved_low':        0,
+    'dismissed':           0,
+    'snoosed':             0,
     'remediable':          0,
     'remediable_open':     0,
     'remediable_resolved': 0,
@@ -619,12 +622,12 @@ else:
 # Output totals.
 ##########################################################################################
 
-# Output Summary of Things.
+# Output Utilization.
 
 output()
-output('#################################################################################', OUTPUT_FILES['SUMMARY-OTHER'])
-output('# SHEET: Summary: Assets, Accounts, Groups, Rules, Integrations, Policies, Users',  OUTPUT_FILES['SUMMARY-OTHER'])
-output('#################################################################################', OUTPUT_FILES['SUMMARY-OTHER'])
+output('#################################################################################')
+output('# Summary: Utilization', OUTPUT_FILES['SUMMARY-OTHER'])
+output('#################################################################################')
 output()
 output("Number of Assets:\t%s" % asset_count, OUTPUT_FILES['SUMMARY-OTHER'])
 output()
@@ -655,37 +658,37 @@ output()
 
 output()
 output('#################################################################################')
-output('# SHEET: By Compliance Standard: Open Alerts%s' % VAR_TIME_RANGE,                   OUTPUT_FILES['STANDARDS-OPEN-ALERTS'])
+output('# By Compliance Standard: Open Alerts%s' % VAR_TIME_RANGE, OUTPUT_FILES['STANDARDS-OPEN-ALERTS'])
 output('#################################################################################')
 output('Saved to: %s' % OUTPUT_FILES['STANDARDS-OPEN-ALERTS'])
-output('%s\t%s\t%s\t%s' % ('Compliance Standard', 'Alerts High', 'Alerts Medium', 'Alerts Low'), OUTPUT_FILES['STANDARDS-OPEN-ALERTS'], False)																						
+output('%s\t%s\t%s\t%s' % ('Compliance Standard', 'Alerts High', 'Alerts Medium', 'Alerts Low'), OUTPUT_FILES['STANDARDS-OPEN-ALERTS'], NO_STDOUT)																						
 for compliance_standard_name in sorted(compliance_standards_counts_from_policies):
     alert_count_high   = compliance_standards_counts_from_policies[compliance_standard_name]['high']
     alert_count_medium = compliance_standards_counts_from_policies[compliance_standard_name]['medium']
     alert_count_low    = compliance_standards_counts_from_policies[compliance_standard_name]['low']
-    output('%s\t%s\t%s\t%s' % (compliance_standard_name, alert_count_high, alert_count_medium, alert_count_low), OUTPUT_FILES['STANDARDS-OPEN-ALERTS'], False)
+    output('%s\t%s\t%s\t%s' % (compliance_standard_name, alert_count_high, alert_count_medium, alert_count_low), OUTPUT_FILES['STANDARDS-OPEN-ALERTS'], NO_STDOUT)
 
 if not SUPPORT_API_MODE:
     output()
     output('#################################################################################')
-    output('# SHEET: By Compliance Standard: Open and Closed Alerts, %s' % TIME_RANGE_LABEL,    OUTPUT_FILES['STANDARDS-ALL-ALERTS'])
+    output('# By Compliance Standard: Open and Closed Alerts, %s' % TIME_RANGE_LABEL, OUTPUT_FILES['STANDARDS-ALL-ALERTS'])
     output('#################################################################################')
     output('Saved to: %s' % OUTPUT_FILES['STANDARDS-ALL-ALERTS'])
-    output('%s\t%s\t%s\t%s' % ('Compliance Standard', 'Alerts High', 'Alerts Medium', 'Alerts Low'), OUTPUT_FILES['STANDARDS-ALL-ALERTS'], False)																						
+    output('%s\t%s\t%s\t%s' % ('Compliance Standard', 'Alerts High', 'Alerts Medium', 'Alerts Low'), OUTPUT_FILES['STANDARDS-ALL-ALERTS'], NO_STDOUT)																						
     for standard_name in sorted(compliance_standards_counts_from_alerts):
         alert_count_high   = compliance_standards_counts_from_alerts[standard_name]['high']
         alert_count_medium = compliance_standards_counts_from_alerts[standard_name]['medium']
         alert_count_low    = compliance_standards_counts_from_alerts[standard_name]['low']
-        output('%s\t%s\t%s\t%s' % (standard_name, alert_count_high, alert_count_medium, alert_count_low), OUTPUT_FILES['STANDARDS-ALL-ALERTS'], False)
+        output('%s\t%s\t%s\t%s' % (standard_name, alert_count_high, alert_count_medium, alert_count_low), OUTPUT_FILES['STANDARDS-ALL-ALERTS'], NO_STDOUT)
     
 # Output Policies with Alerts.
 
 output()
 output('#################################################################################')
-output('# SHEET: By Policy: Open Alerts%s' % VAR_TIME_RANGE,                                OUTPUT_FILES['POLICIES-OPEN-ALERTS'])
+output('# By Policy: Open Alerts%s' % VAR_TIME_RANGE, OUTPUT_FILES['POLICIES-OPEN-ALERTS'])
 output('#################################################################################')
 output('Saved to: %s' % OUTPUT_FILES['POLICIES-OPEN-ALERTS'])
-output('%s\t%s\t%s\t%s\t%s\t%s\t%s' % ('Policy', 'Severity', 'Type', 'With IAC', 'With Remediation', 'Alert Count', 'Compliance Standards'), OUTPUT_FILES['POLICIES-OPEN-ALERTS'], False)
+output('%s\t%s\t%s\t%s\t%s\t%s\t%s' % ('Policy', 'Severity', 'Type', 'With IAC', 'With Remediation', 'Alert Count', 'Compliance Standards'), OUTPUT_FILES['POLICIES-OPEN-ALERTS'], NO_STDOUT)
 for this_policy_name in sorted(policies_by_name):
     this_policy_id        = policies_by_name[this_policy_name]['policyId']
     policy_severity       = policies[this_policy_id]['policySeverity']
@@ -694,15 +697,15 @@ for this_policy_name in sorted(policies_by_name):
     policy_is_remediable  = policies[this_policy_id]['policyRemediable']
     policy_alert_count    = policies[this_policy_id]['alertCount']
     policy_standards_list = ','.join(map(str, policies[this_policy_id]['complianceStandards']))
-    output('%s\t%s\t%s\t%s\t%s\t%s\t"%s"' % (this_policy_name, policy_severity, policy_type, policy_is_remediable, policy_is_remediable, policy_alert_count, policy_standards_list), OUTPUT_FILES['POLICIES-OPEN-ALERTS'], False)
+    output('%s\t%s\t%s\t%s\t%s\t%s\t"%s"' % (this_policy_name, policy_severity, policy_type, policy_is_remediable, policy_is_remediable, policy_alert_count, policy_standards_list), OUTPUT_FILES['POLICIES-OPEN-ALERTS'], NO_STDOUT)
 
 if not SUPPORT_API_MODE:
     output()
     output('#################################################################################')
-    output('# SHEET: By Policy: Open and Closed Alerts, %s' % TIME_RANGE_LABEL,                 OUTPUT_FILES['POLICIES-ALL-ALERTS'])
+    output('# By Policy: Open and Closed Alerts, %s' % TIME_RANGE_LABEL, OUTPUT_FILES['POLICIES-ALL-ALERTS'])
     output('#################################################################################')
     output('Saved to: %s' % OUTPUT_FILES['POLICIES-ALL-ALERTS'])
-    output('%s\t%s\t%s\t%s\t%s\t%s\t%s' % ('Policy', 'Severity', 'Type', 'With IAC', 'With Remediation', 'Alert Count', 'Compliance Standards'), OUTPUT_FILES['POLICIES-ALL-ALERTS'], False)
+    output('%s\t%s\t%s\t%s\t%s\t%s\t%s' % ('Policy', 'Severity', 'Type', 'With IAC', 'With Remediation', 'Alert Count', 'Compliance Standards'), OUTPUT_FILES['POLICIES-ALL-ALERTS'], NO_STDOUT)
     for this_policy_name in sorted(policy_counts_from_alerts):
         this_policy_id        = policy_counts_from_alerts[this_policy_name]['policyId']
         policy_severity       = policies[this_policy_id]['policySeverity']
@@ -711,14 +714,14 @@ if not SUPPORT_API_MODE:
         policy_is_remediable  = policies[this_policy_id]['policyRemediable']
         policy_alert_count    = policy_counts_from_alerts[this_policy_name]['alertCount']
         policy_standards_list = ','.join(map(str, policies[this_policy_id]['complianceStandards']))
-        output('%s\t%s\t%s\t%s\t%s\t%s\t"%s"' % (this_policy_name, policy_severity, policy_type, policy_is_remediable, policy_is_remediable, policy_alert_count, policy_standards_list), OUTPUT_FILES['POLICIES-ALL-ALERTS'], False)
+        output('%s\t%s\t%s\t%s\t%s\t%s\t"%s"' % (this_policy_name, policy_severity, policy_type, policy_is_remediable, policy_is_remediable, policy_alert_count, policy_standards_list), OUTPUT_FILES['POLICIES-ALL-ALERTS'], NO_STDOUT)
 
 # Output Summary of Alerts.
 
 output()
-output('#################################################################################', OUTPUT_FILES['SUMMARY-OPEN-ALERTS'])
-output('# SHEET: Summary: Open Alerts%s' % VAR_TIME_RANGE,                                  OUTPUT_FILES['SUMMARY-OPEN-ALERTS'])
-output('#################################################################################', OUTPUT_FILES['SUMMARY-OPEN-ALERTS'])
+output('#################################################################################')
+output('# Summary: Open Alerts%s' % VAR_TIME_RANGE, OUTPUT_FILES['SUMMARY-OPEN-ALERTS'])
+output('#################################################################################')
 output()
 output("Number of Compliance Standards with Open Alerts:\t%s" % count_of_compliance_standards_with_alerts_from_policies, OUTPUT_FILES['SUMMARY-OPEN-ALERTS'])
 output()
@@ -730,9 +733,9 @@ output("Open Alerts High-Severity\t%s"   % alert_totals_by_policy['open_high'], 
 output("Open Alerts Medium-Severity\t%s" % alert_totals_by_policy['open_medium'], OUTPUT_FILES['SUMMARY-OPEN-ALERTS'])
 output("Open Alerts Low-Severity\t%s"    % alert_totals_by_policy['open_low'], OUTPUT_FILES['SUMMARY-OPEN-ALERTS'])
 output()
-output("Open Anomaly Alerts\t%s" % alert_totals_by_policy['anomaly'], OUTPUT_FILES['SUMMARY-OPEN-ALERTS']) # TJK
-output("Open Config Alerts\t%s"  % alert_totals_by_policy['config'], OUTPUT_FILES['SUMMARY-OPEN-ALERTS'])  # TJK
-output("Open Network Alerts\t%s" % alert_totals_by_policy['network'], OUTPUT_FILES['SUMMARY-OPEN-ALERTS']) # TJK
+output("Open Anomaly Alerts\t%s" % alert_totals_by_policy['anomaly'], OUTPUT_FILES['SUMMARY-OPEN-ALERTS'])
+output("Open Config Alerts\t%s"  % alert_totals_by_policy['config'], OUTPUT_FILES['SUMMARY-OPEN-ALERTS'])
+output("Open Network Alerts\t%s" % alert_totals_by_policy['network'], OUTPUT_FILES['SUMMARY-OPEN-ALERTS'])
 output()
 output("Open Alerts with IaC\t%s" % alert_totals_by_policy['shiftable'], OUTPUT_FILES['SUMMARY-OPEN-ALERTS'])
 output()
@@ -743,9 +746,9 @@ output("Open Alerts Generated by Default Policies\t%s" % alert_totals_by_policy[
 output()
     
 if not SUPPORT_API_MODE:
-    output('#################################################################################', OUTPUT_FILES['SUMMARY-ALL-ALERTS'])
-    output('# SHEET: Summary: Open and Closed Alerts, %s' % TIME_RANGE_LABEL,                   OUTPUT_FILES['SUMMARY-ALL-ALERTS'])
-    output('#################################################################################', OUTPUT_FILES['SUMMARY-ALL-ALERTS'])
+    output('#################################################################################')
+    output('# Summary: Open and Closed Alerts, %s' % TIME_RANGE_LABEL, OUTPUT_FILES['SUMMARY-ALL-ALERTS'])
+    output('#################################################################################')
     output()    
     output("Number of Compliance Standards with Alerts:\t%s" % count_of_compliance_standards_with_alerts_from_alerts, OUTPUT_FILES['SUMMARY-ALL-ALERTS'])
     output()
