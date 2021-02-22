@@ -13,13 +13,13 @@ and outputs results to an Excel spreadsheet, including:
 
 ### Requirements
 
-* (Developed and tested on) Python 3.x with the `pandas` and `requests` libraries.
+* (Developed and tested on) Python 3.x with the `pandas`, `xlsxwriter`, and `requests` libraries.
 * Prisma Cloud Access Key with `ACCOUNT GROUP READ ONLY` or `SYSTEM ADMIN` privileges.
 
 ### Usage
 
 * Download this repository.
-* If necessary, install the `requests` library.
+* If necessary, install the required libraries.
 * Execute `pcs-inspect.py` to collect and process the data.
 * Import the results into Google Sheets, and/or Google Slides (for example: [PCS Inspect Report](https://docs.google.com/presentation/d/10x_PGAu0ZPUGZMc4Tfevf9gpXvhIUOwGrBuRBkI6Jjc/edit?usp=sharing))
 * Profit!
