@@ -532,7 +532,7 @@ alert_totals_by_alert = {
     'resolved_medium':     0,
     'resolved_low':        0,
     'dismissed':           0,
-    'snoosed':             0,
+    'snoozed':             0,
     'remediable':          0,
     'remediable_open':     0,
     'remediable_resolved': 0,
