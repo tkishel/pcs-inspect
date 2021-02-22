@@ -500,7 +500,7 @@ for this_policy in DATA['POLICIES']:
 
 compliance_standards_counts_from_alerts = {}
 
-# Collect Policy totals from Alert data, as Alert data includes open and closed Alerts.
+# Collect Policy totals from Alert data, as Alert data includes Open and Closed Alerts.
 
 policy_counts_from_alerts = {}
 
@@ -547,7 +547,7 @@ alert_totals_by_alert = {
     'default':             0
 }
 
-# With , as Alert data includes open and closed Alerts.
+# Alert data includes Open and Closed Alerts.
 
 if SUPPORT_API_MODE:
     policy_totals_by_alert['high']        = aggregate_alerts_by['severity']['high']
@@ -676,7 +676,7 @@ if not SUPPORT_API_MODE:
     rows.append((''))
     rows.append((''))
     rows.append(('Time Range: %s' % TIME_RANGE_LABEL, ''))
-    write_sheet(panda_writer, 'Open and Closed Alerts by Standard', rows)
+    write_sheet(panda_writer, 'Open Closed Alerts by Standard', rows)
 
 output('Saving Alerts by Policy Worksheet(s)')
 output()
@@ -711,7 +711,7 @@ if not SUPPORT_API_MODE:
     rows.append((''))
     rows.append((''))
     rows.append(('Time Range: %s' % TIME_RANGE_LABEL, ''))
-    write_sheet(panda_writer, 'Open and Closed Alerts by Policy', rows)
+    write_sheet(panda_writer, 'Open Closed Alerts by Policy', rows)
 
 output('Saving Alerts Summary Worksheet(s)')
 output()
@@ -779,7 +779,7 @@ if not SUPPORT_API_MODE:
         ('',''),
         ('Time Range: %s' % TIME_RANGE_LABEL, ''),
     ]
-    write_sheet(panda_writer, 'Open and Closed Alerts Summary', rows)
+    write_sheet(panda_writer, 'Open Closed Alerts Summary', rows)
 
 save_sheet(panda_writer)
 output('Results saved as: %s' % OUTPUT_FILE_XLS)
