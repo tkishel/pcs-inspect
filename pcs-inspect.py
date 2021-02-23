@@ -405,7 +405,12 @@ if type(DATA['ALERTS']) is dict:
 ##########################################################################################
 
 if SUPPORT_API_MODE:
-    aggregate_alerts_by = {'policy': {}, 'type': {}, 'severity': {}, 'status': {}}
+    aggregate_alerts_by = {
+        'policy':   {}, 
+        'type':     {'anomaly': 0, 'audit_event': 0, 'config': 0, 'data': 0, 'iam': 0}, 
+        'severity': {'high': 0, 'medium': 0, 'low': 0}, 
+        'status':   {'open': 0, 'resolved': 0}
+    }
     for item in DATA['ALERTS']['by_policy']:
         aggregate_alerts_by['policy'][item['policyName']] = item['alerts']
     for item in DATA['ALERTS']['by_policy_type']:
