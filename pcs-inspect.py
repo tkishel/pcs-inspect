@@ -256,23 +256,24 @@ def get_alerts():
         api_response = make_api_call('POST', '%s/alert/jobs' % PRISMA_API_ENDPOINT, request_data)
         api_response_json = json.loads(api_response)
         if not 'id' in api_response_json:
-            output('Error with alert/jobs API: Details: %s' % api_response_json)
+            output("Error with '/alert/jobs' API: 'id' missing from response: %s" % api_response_json)
             return
         alert_job_id = api_response_json['id']
         api_response = make_api_call('GET', '%s/alert/jobs/%s/status' % (PRISMA_API_ENDPOINT, alert_job_id))
         api_response_json = json.loads(api_response)
         if not 'status' in api_response_json:
-            output('Error with alert/jobs API: Details: %s' % api_response_json)
+            output("Error with '/alert/jobs' API: 'status' missing from response: %s" % api_response_json)
             return
         alert_job_status = api_response_json['status']
         while alert_job_status == 'IN_PROGRESS':
+            output('Checking: %s' % alert_job_status)
             if DEBUG_MODE:
                 output(api_response_json)
                 output()
             api_response = make_api_call('GET', '%s/alert/jobs/%s/status' % (PRISMA_API_ENDPOINT, alert_job_id))
             api_response_json = json.loads(api_response)
             if not 'status' in api_response_json:
-                output('Error with alert/jobs API: Details: %s' % api_response_json)
+                output("Error with '/alert/jobs' API: 'status' missing from response: %s" % api_response_json)
                 return
             alert_job_status = api_response_json['status']
         if alert_job_status == 'READY_TO_DOWNLOAD':
@@ -281,7 +282,7 @@ def get_alerts():
             result_file.write(api_response)
             result_file.close()
         else:
-            output('Error with alert/jobs API: Details: %s' % api_response_json)
+            output("Error with '/alert/jobs' API: 'status' in response not in ('IN_PROGRESS','READY_TO_DOWNLOAD'): %s" % api_response_json)
         # This returns a list (of Open and Closed Alerts).
 
 def get_users():
