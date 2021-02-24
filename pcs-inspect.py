@@ -124,6 +124,9 @@ def save_sheet(panda_writer):
 ####
 
 def make_api_call(method, url, requ_data=None):
+    if DEBUG_MODE:
+        print('METHOD: %s URL: %s' % (method, url))
+        print('REQUEST DATA: %s' % requ_data)
     try:
         requ = requests.Request(method, url, data = requ_data, headers = PRISMA_API_HEADERS)
         prep = requ.prepare()
@@ -131,6 +134,8 @@ def make_api_call(method, url, requ_data=None):
         # GlobalProtect generates 'ignore self signed certificate in certificate chain' errors:
         requests.packages.urllib3.disable_warnings()
         resp = sess.send(prep, timeout=(API_TIMEOUTS), verify=False)
+        #if DEBUG_MODE:
+        #    print(resp.text)
         if resp.status_code == 200:
             return resp.content
         else:
