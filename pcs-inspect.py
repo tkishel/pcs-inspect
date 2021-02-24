@@ -134,7 +134,9 @@ def make_api_call(method, url, requ_data=None):
         if resp.status_code == 200:
             return resp.content
         else:
-            return bytes('[]', 'utf-8')
+            # return bytes('[]', 'utf-8')
+            output('Error with API: Status Code: %s Details: %s' % (resp.status_code, resp.text))
+            sys.exit()
     except RequestException as e:
         output('Error with API: %s: %s' % (url, str(e)))
         sys.exit()
