@@ -326,6 +326,8 @@ def get_account_groups():
     result_file.write(api_response)
     result_file.close()
 
+# SUPPORT_API_MODE:
+# TODO: Does not honor ?enabled=true so post-process.
 def get_alert_rules():
     delete_file_if_exists(RESULT_FILES['RULES'])
     if SUPPORT_API_MODE:
@@ -799,6 +801,18 @@ if not SUPPORT_API_MODE:
         ('Resolved Alerts High-Severity',               alert_totals_by_alert['resolved_high']),
         ('Resolved Alerts Medium-Severity',             alert_totals_by_alert['resolved_medium']),
         ('Resolved Alerts Low-Severity',                alert_totals_by_alert['resolved_low']),
+        ('',''),
+        ('Snoozed Alerts',                              alert_totals_by_alert['snoozed']),
+        ('',''),
+        ('Snoozed Alerts High-Severity',                alert_totals_by_alert['snoozed_high']),
+        ('Snoozed Alerts Medium-Severity',              alert_totals_by_alert['snoozed_medium']),
+        ('Snoozed Alerts Low-Severity',                 alert_totals_by_alert['snoozed_low']),
+        ('',''),
+        ('Dismissed Alerts',                            alert_totals_by_alert['dismissed']),
+        ('',''),
+        ('Dismissed Alerts High-Severity',              alert_totals_by_alert['dismissed_high']),
+        ('Dismissed Alerts Medium-Severity',            alert_totals_by_alert['dismissed_medium']),
+        ('Dismissed Alerts Low-Severity',               alert_totals_by_alert['dismissed_low']),
         ('',''),
         ('Anomaly Alerts',                              policy_totals_by_alert['anomaly']),
         ('Config Alerts',                               policy_totals_by_alert['config']),
