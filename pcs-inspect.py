@@ -101,6 +101,12 @@ def output(output_data=''):
 
 ####
 
+def delete_file_if_exists(file_name):
+    if os.path.exists(file_name):
+        os.remove(file_name)
+
+####
+
 def open_sheet(file_name):
     return pd.ExcelWriter(file_name, engine='xlsxwriter')
 
@@ -110,11 +116,11 @@ def write_sheet(panda_writer, this_sheet_name, rows):
     dataframe = pd.DataFrame.from_records(rows)
     dataframe.to_excel(panda_writer, sheet_name=this_sheet_name, header=False, index=False)
     if DEBUG_MODE:
-        print(this_sheet_name)
-        print()
+        output(this_sheet_name)
+        output()
         pd.set_option('display.max_rows', None)
-        print(dataframe)
-        print()
+        output(dataframe)
+        output()
 
 ####
 
@@ -125,8 +131,8 @@ def save_sheet(panda_writer):
 
 def make_api_call(method, url, requ_data=None):
     if DEBUG_MODE:
-        print('METHOD: %s URL: %s' % (method, url))
-        print('REQUEST DATA: %s' % requ_data)
+        output('METHOD: %s URL: %s' % (method, url))
+        output('REQUEST DATA: %s' % requ_data)
     try:
         requ = requests.Request(method, url, data = requ_data, headers = PRISMA_API_HEADERS)
         prep = requ.prepare()
@@ -134,9 +140,9 @@ def make_api_call(method, url, requ_data=None):
         # GlobalProtect generates 'ignore self signed certificate in certificate chain' errors:
         requests.packages.urllib3.disable_warnings()
         resp = sess.send(prep, timeout=(API_TIMEOUTS), verify=False)
-        #if DEBUG_MODE:
-        #    print(resp.text)
-        if resp.status_code == 200:
+        if DEBUG_MODE:
+            output(resp.text)
+        if resp.ok:
             return resp.content
         else:
             # return bytes('[]', 'utf-8')
@@ -179,6 +185,7 @@ def get_alerts_aggregate(group_by_field):
 # Use '/_support/timeline/resource' instead of the not implemented '_support/v2/inventory' endpoint.
     
 def get_assets():
+    delete_file_if_exists(RESULT_FILES['ASSETS'])
     if SUPPORT_API_MODE:
         body_params = {}
         body_params["customerName"] = "%s" % CUSTOMER_NAME
@@ -209,6 +216,7 @@ def get_assets():
 # Instead, this script merges the results of the '/_support/alert/aggregate' endpoint with the results of the '/_support/policy' endpoint.
 
 def get_policies():
+    delete_file_if_exists(RESULT_FILES['POLICIES'])
     if SUPPORT_API_MODE:
         body_params = {"customerName": "%s" % CUSTOMER_NAME}
         request_data = json.dumps(body_params)
@@ -223,11 +231,11 @@ def get_policies():
         result_file.close()
 
 # SUPPORT_API_MODE:
-# This script depends upon the not implemented '/_support/v2/alert(s)' endpoint.
-# And the '/_support/alert' endpoint returns 'getAlert()' instead of 'getAlerts()' on the backend.
+# This script depends upon the not implemented '/_support/alert/jobs' endpoint.
 # Instead, this script merges the results of the '/_support/alert/aggregate' endpoint with the results of the '/_support/policy' endpoint.
 
 def get_alerts():
+    delete_file_if_exists(RESULT_FILES['ALERTS'])
     if SUPPORT_API_MODE:
         api_response = {}
         api_response['by_policy']          = json.loads(get_alerts_aggregate('policy.name'))     # [{"policyName":"AWS VPC subnets should not allow automatic public IP assignment","alerts":105},{"policyName":"AWS Security Group overly permissive to all traffic","alerts":91}, ...
@@ -244,30 +252,40 @@ def get_alerts():
         body_params['timeRange'] = {"value": {"unit": "%s" % TIME_RANGE_UNIT, "amount": TIME_RANGE_AMOUNT}, "type": "relative"}
         if CLOUD_ACCOUNT_ID:
             body_params["filters"] = [{"name": "cloud.accountId","value": "%s" % CLOUD_ACCOUNT_ID, "operator": "="}]
-        body_params['limit'] = 100
         request_data = json.dumps(body_params)
-        api_response = make_api_call('POST', '%s/v2/alert' % PRISMA_API_ENDPOINT, request_data)
+        api_response = make_api_call('POST', '%s/alert/jobs' % PRISMA_API_ENDPOINT, request_data)
         api_response_json = json.loads(api_response)
-        api_response_array = api_response_json['items']
-        result_file = open(RESULT_FILES['ALERTS'], 'w')
-        while 'nextPageToken' in api_response_json:
-            sys.stdout.write('.')
-            sys.stdout.flush()
-            body_params = {}
-            body_params['limit'] = 100
-            body_params['pageToken'] = api_response_json['nextPageToken']
-            request_data = json.dumps(body_params)
-            api_response = make_api_call('POST', '%s/v2/alert' % PRISMA_API_ENDPOINT, request_data)
+        if not 'id' in api_response_json:
+            output('Error with alert/jobs API: Details: %s' % api_response_json)
+            return
+        alert_job_id = api_response_json['id']
+        api_response = make_api_call('GET', '%s/alert/jobs/%s/status' % (PRISMA_API_ENDPOINT, alert_job_id))
+        api_response_json = json.loads(api_response)
+        if not 'status' in api_response_json:
+            output('Error with alert/jobs API: Details: %s' % api_response_json)
+            return
+        alert_job_status = api_response_json['status']
+        while alert_job_status == 'IN_PROGRESS':
+            if DEBUG_MODE:
+                output(api_response_json)
+                output()
+            api_response = make_api_call('GET', '%s/alert/jobs/%s/status' % (PRISMA_API_ENDPOINT, alert_job_id))
             api_response_json = json.loads(api_response)
-            if 'items' in api_response_json:
-                api_response_array_page = api_response_json['items']
-                api_response_array.extend(api_response_array_page)
-        api_response_array_json = json.dumps(api_response_array, indent=2, separators=(', ', ': '))
-        result_file.write(api_response_array_json)
-        result_file.close()
+            if not 'status' in api_response_json:
+                output('Error with alert/jobs API: Details: %s' % api_response_json)
+                return
+            alert_job_status = api_response_json['status']
+        if alert_job_status == 'READY_TO_DOWNLOAD':
+            api_response = make_api_call('GET', '%s/alert/jobs/%s/download' % (PRISMA_API_ENDPOINT, alert_job_id))
+            result_file = open(RESULT_FILES['ALERTS'], 'wb')
+            result_file.write(api_response)
+            result_file.close()
+        else:
+            output('Error with alert/jobs API: Details: %s' % api_response_json)
         # This returns a list (of Open and Closed Alerts).
 
 def get_users():
+    delete_file_if_exists(RESULT_FILES['USERS'])
     if SUPPORT_API_MODE:
         body_params = {"customerName": "%s" % CUSTOMER_NAME}
         request_data = json.dumps(body_params)
@@ -284,6 +302,7 @@ def get_users():
 #   "numberOfChildAccounts":
 
 def get_accounts():
+    delete_file_if_exists(RESULT_FILES['ACCOUNTS'])
     if SUPPORT_API_MODE:
         body_params = {"customerName": "%s" % CUSTOMER_NAME}
         request_data = json.dumps(body_params)
@@ -295,6 +314,7 @@ def get_accounts():
     result_file.close()
 
 def get_account_groups():
+    delete_file_if_exists(RESULT_FILES['GROUPS'])
     if SUPPORT_API_MODE:
         body_params = {"customerName": "%s" % CUSTOMER_NAME}
         request_data = json.dumps(body_params)
@@ -306,6 +326,7 @@ def get_account_groups():
     result_file.close()
 
 def get_alert_rules():
+    delete_file_if_exists(RESULT_FILES['RULES'])
     if SUPPORT_API_MODE:
         body_params = {"customerName": "%s" % CUSTOMER_NAME}
         request_data = json.dumps(body_params)
@@ -317,6 +338,7 @@ def get_alert_rules():
     result_file.close()
 
 def get_integrations():
+    delete_file_if_exists(RESULT_FILES['INTEGRATIONS'])
     if SUPPORT_API_MODE:
         body_params = {"customerName": "%s" % CUSTOMER_NAME}
         request_data = json.dumps(body_params)
