@@ -250,7 +250,7 @@ def get_alerts():
         # This returns a dictionary (of Open Alerts) instead of a list.
     else:
         body_params = {}
-        body_params['limit'] = 100 # nextPageToken
+        # N/A # body_params['limit'] = 100 # nextPageToken
         body_params['timeRange'] = {"value": {"unit": "%s" % TIME_RANGE_UNIT, "amount": TIME_RANGE_AMOUNT}, "type": "relative"}
         if CLOUD_ACCOUNT_ID:
             body_params["filters"] = [{"name": "cloud.accountId","value": "%s" % CLOUD_ACCOUNT_ID, "operator": "="}]
