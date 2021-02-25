@@ -81,14 +81,14 @@ TIME_RANGE_UNIT   = args.time_range_unit
 TIME_RANGE_LABEL  = 'Past %s %s' % (TIME_RANGE_AMOUNT, TIME_RANGE_UNIT.capitalize())
 CUSTOMER_PREFIX   = re.sub(r'\W+', '', CUSTOMER_NAME).lower()
 RESULT_FILES = {
-    'ASSETS':       '%s-assets.txt'        % CUSTOMER_PREFIX,
-    'POLICIES':     '%s-policies.txt'      % CUSTOMER_PREFIX,
-    'ALERTS':       '%s-alerts.txt'        % CUSTOMER_PREFIX,
-    'USERS':        '%s-users.txt'         % CUSTOMER_PREFIX,
-    'ACCOUNTS':     '%s-accounts.txt'      % CUSTOMER_PREFIX,
-    'GROUPS':       '%s-groups.txt'        % CUSTOMER_PREFIX,
-    'RULES':        '%s-rules.txt'         % CUSTOMER_PREFIX,
-    'INTEGRATIONS': '%s-integrations.txt'  % CUSTOMER_PREFIX
+    'ASSETS':       '%s-assets.json'        % CUSTOMER_PREFIX,
+    'POLICIES':     '%s-policies.json'      % CUSTOMER_PREFIX,
+    'ALERTS':       '%s-alerts.json'        % CUSTOMER_PREFIX,
+    'USERS':        '%s-users.json'         % CUSTOMER_PREFIX,
+    'ACCOUNTS':     '%s-accounts.json'      % CUSTOMER_PREFIX,
+    'GROUPS':       '%s-groups.json'        % CUSTOMER_PREFIX,
+    'RULES':        '%s-rules.json'         % CUSTOMER_PREFIX,
+    'INTEGRATIONS': '%s-integrations.json'  % CUSTOMER_PREFIX
 }
 OUTPUT_FILE_XLS = '%s.xls' % CUSTOMER_PREFIX
 
