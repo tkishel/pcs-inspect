@@ -131,7 +131,8 @@ def save_sheet(panda_writer):
 
 def make_api_call(method, url, requ_data=None):
     if DEBUG_MODE:
-        output('METHOD: %s URL: %s' % (method, url))
+        output('URL: %s' % url)
+        output('METHOD: %s' % method)
         output('REQUEST DATA: %s' % requ_data)
     try:
         requ = requests.Request(method, url, data = requ_data, headers = PRISMA_API_HEADERS)
@@ -249,6 +250,7 @@ def get_alerts():
         # This returns a dictionary (of Open Alerts) instead of a list.
     else:
         body_params = {}
+        body_params['limit'] = 100 # nextPageToken
         body_params['timeRange'] = {"value": {"unit": "%s" % TIME_RANGE_UNIT, "amount": TIME_RANGE_AMOUNT}, "type": "relative"}
         if CLOUD_ACCOUNT_ID:
             body_params["filters"] = [{"name": "cloud.accountId","value": "%s" % CLOUD_ACCOUNT_ID, "operator": "="}]
@@ -326,8 +328,6 @@ def get_account_groups():
     result_file.write(api_response)
     result_file.close()
 
-# SUPPORT_API_MODE:
-# TODO: Does not honor ?enabled=true so post-process.
 def get_alert_rules():
     delete_file_if_exists(RESULT_FILES['RULES'])
     if SUPPORT_API_MODE:
