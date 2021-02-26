@@ -10,6 +10,7 @@
 
 *.conf
 *.csv
+*.json
 *.xls
 *.tab
 *.txt

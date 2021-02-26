@@ -42,8 +42,8 @@ pc_parser.add_argument('-ta', '--time_range_amount',
     help="(Optional) Time Range Amount to limit the Alert query. Default: 1")
 
 pc_parser.add_argument('-tu', '--time_range_unit',
-    type=str, default='month', choices=['day', 'week', 'month', 'year'],
-    help="(Optional) Time Range Unit to limit the Alert query. Default: 'month'")
+    type=str, default='week', choices=['day', 'week', 'month', 'year'],
+    help="(Optional) Time Range Unit to limit the Alert query. Default: 'week'")
 
 pc_parser.add_argument('-m', '--mode',
     type=str, default='auto', choices=['collect', 'process'],
@@ -374,7 +374,7 @@ if RUN_MODE in ['collect', 'auto'] :
         output()
     PRISMA_API_HEADERS['x-redlock-auth'] = token
     output()
-    output('Querying Assets')
+    output('Querying Assets: Time Range: %s' % TIME_RANGE_LABEL)
     get_assets()
     output('Results saved as: %s' % RESULT_FILES['ASSETS'])
     output()
@@ -382,7 +382,7 @@ if RUN_MODE in ['collect', 'auto'] :
     get_policies()
     output('Results saved as: %s' % RESULT_FILES['POLICIES'])
     output()
-    output('Querying Alerts (please wait)')
+    output('Querying Alerts: Time Range: %s (please wait)' % TIME_RANGE_LABEL)
     get_alerts()
     output()
     output('Results saved as: %s' % RESULT_FILES['ALERTS'])
