@@ -423,7 +423,7 @@ for this_result_file in RESULT_FILES:
     if not os.path.isfile(RESULT_FILES[this_result_file]):
       output('Error: Query result file does not exist: %s' % RESULT_FILES[this_result_file])
       sys.exit(1)
-    with open(RESULT_FILES[this_result_file], 'r') as f:
+    with open(RESULT_FILES[this_result_file], 'r', encoding='utf8') as f:
       DATA[this_result_file] = json.load(f)
 
 # SUPPORT_API_MODE returns a dictionary (of Open Alerts) instead of a list.
