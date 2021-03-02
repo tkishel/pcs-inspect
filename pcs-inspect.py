@@ -111,10 +111,19 @@ def open_sheet(file_name):
     return pd.ExcelWriter(file_name, engine='xlsxwriter')
 
 ####
-
+    
 def write_sheet(panda_writer, this_sheet_name, rows):
     dataframe = pd.DataFrame.from_records(rows)
     dataframe.to_excel(panda_writer, sheet_name=this_sheet_name, header=False, index=False)
+    this_sheet = panda_writer.sheets[this_sheet_name]
+    # Approximate autofit column width.
+    for idx, column in enumerate(dataframe): # Loop through the columns.
+        dataframe_series = dataframe[column]
+        column_width = max(
+            dataframe_series.astype(str).map(len).max(), # Length of largest cell
+            len(str(dataframe_series.name))              # Length of column header / name
+            )
+        this_sheet.set_column(idx, idx, column_width)
     if DEBUG_MODE:
         output(this_sheet_name)
         output()
@@ -522,6 +531,10 @@ for this_policy in DATA['POLICIES']:
     policies[this_policy_id]['policyShiftable']     = 'build' in this_policy['policySubTypes']
     policies[this_policy_id]['policyRemediable']    = this_policy['remediable']
     policies[this_policy_id]['policySystemDefault'] = this_policy['systemDefault']
+    if 'policyUpi' in this_policy:
+        policies[this_policy_id]['policyUpi'] = this_policy['policyUpi']
+    else:
+        policies[this_policy_id]['policyUpi'] = 'CUSTOM'
     # Create sets and lists of Compliance Standards to create a sorted, unique list of counters for each Compliance Standard.
     policies[this_policy_id]['complianceStandards'] = list()
     if 'complianceMetadata' in this_policy:
@@ -738,16 +751,17 @@ if not SUPPORT_API_MODE:
 output('Saving Alerts by Policy Worksheet(s)')
 output()
 rows = []
-rows.append(('Policy', 'Severity', 'Type', 'With IAC', 'With Remediation', 'Alert Count', 'Compliance Standards'))
+rows.append(('Policy', 'UPI', 'Severity', 'Type', 'With IAC', 'With Remediation', 'Alert Count', 'Compliance Standards'))
 for policy_name in sorted(policies_by_name):
     this_policy_id        = policies_by_name[policy_name]['policyId']
+    policy_upi            = policies[this_policy_id]['policyUpi']
     policy_severity       = policies[this_policy_id]['policySeverity']
     policy_type           = policies[this_policy_id]['policyType']
     policy_is_shiftable   = policies[this_policy_id]['policyShiftable']
     policy_is_remediable  = policies[this_policy_id]['policyRemediable']
     policy_alert_count    = policies[this_policy_id]['alertCount']
     policy_standards_list = ','.join(map(str, policies[this_policy_id]['complianceStandards']))
-    rows.append((policy_name, policy_severity, policy_type, policy_is_remediable, policy_is_remediable, policy_alert_count, policy_standards_list))
+    rows.append((policy_name, policy_upi, policy_severity, policy_type, policy_is_remediable, policy_is_remediable, policy_alert_count, policy_standards_list))
 rows.append((''))
 rows.append((''))
 rows.append(('Time Range: %s' % VAR_TIME_RANGE, ''))
@@ -755,16 +769,17 @@ write_sheet(panda_writer, 'Open Alerts by Policy', rows)
 
 if not SUPPORT_API_MODE:
     rows = []
-    rows.append(('Policy', 'Severity', 'Type', 'With IAC', 'With Remediation', 'Alert Count', 'Compliance Standards'))
+    rows.append(('Policy', 'UPI', 'Severity', 'Type', 'With IAC', 'With Remediation', 'Alert Count', 'Compliance Standards'))
     for policy_name in sorted(policy_counts_from_alerts):
         this_policy_id        = policy_counts_from_alerts[policy_name]['policyId']
+        policy_upi            = policies[this_policy_id]['policyUpi']
         policy_severity       = policies[this_policy_id]['policySeverity']
         policy_type           = policies[this_policy_id]['policyType']
         policy_is_shiftable   = policies[this_policy_id]['policyShiftable']
         policy_is_remediable  = policies[this_policy_id]['policyRemediable']
         policy_alert_count    = policy_counts_from_alerts[policy_name]['alertCount']
         policy_standards_list = ','.join(map(str, policies[this_policy_id]['complianceStandards']))
-        rows.append((policy_name, policy_severity, policy_type, policy_is_remediable, policy_is_remediable, policy_alert_count, policy_standards_list))
+        rows.append((policy_name, policy_upi, policy_severity, policy_type, policy_is_remediable, policy_is_remediable, policy_alert_count, policy_standards_list))
     rows.append((''))
     rows.append((''))
     rows.append(('Time Range: %s' % TIME_RANGE_LABEL, ''))
