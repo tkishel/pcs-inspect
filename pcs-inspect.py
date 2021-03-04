@@ -318,13 +318,8 @@ def get_accounts():
         api_response_json = json.loads(api_response)
         for account in api_response_json:
             if account['numberOfChildAccounts'] > 0:
-                api_response_child = make_api_call('POST', '%s/_support/cloud/%s/%s/project' % (PRISMA_API_ENDPOINT, account['cloudType'], account['accountId']), request_data)
-                api_response_child_json = json.loads(api_response_child)
-                for child_account in api_response_child_json:
-                    # Children of an organization include the parent, but numberOfChildAccounts is always reported as zero by this endpoint.
-                    if account['accountId'] == child_account['accountId']:
-                        child_account['numberOfChildAccounts'] = account['numberOfChildAccounts']
-                    account_list.append(child_account)
+                api_response_children = make_api_call('POST', '%s/_support/cloud/%s/%s/project' % (PRISMA_API_ENDPOINT, account['cloudType'], account['accountId']), request_data)
+                account_list.extend(parse_account_children(account, api_response_children))
             else:
                 account_list.append(account)
     else:
@@ -332,18 +327,23 @@ def get_accounts():
         api_response_json = json.loads(api_response)
         for account in api_response_json:
             if account['accountType'] == 'organization':
-                api_response_child = make_api_call('GET', '%s/cloud/%s/%s/project' % (PRISMA_API_ENDPOINT, account['cloudType'], account['accountId']))
-                api_response_child_json = json.loads(api_response_child)
-                for child_account in api_response_child_json:
-                    # Children of an organization include the parent, but numberOfChildAccounts is always reported as zero by this endpoint.
-                    if account['accountId'] == child_account['accountId']:
-                        child_account['numberOfChildAccounts'] = account['numberOfChildAccounts']
-                    account_list.append(child_account)
+                api_response_children = make_api_call('GET', '%s/cloud/%s/%s/project' % (PRISMA_API_ENDPOINT, account['cloudType'], account['accountId']))
+                account_list.extend(parse_account_children(account, api_response_children))
             else:
                 account_list.append(account)
     result_file = open(RESULT_FILES['ACCOUNTS'], 'w')
     result_file.write(json.dumps(account_list))
     result_file.close()
+
+def parse_account_children(account, api_response_children):
+    children = []
+    api_response_children_json = json.loads(api_response_children)
+    for child_account in api_response_children_json:
+        # Children of an organization include the parent, but numberOfChildAccounts is always reported as zero by the endpoint.
+        if account['accountId'] == child_account['accountId']:
+            child_account['numberOfChildAccounts'] = account['numberOfChildAccounts']
+        children.append(child_account)
+    return children
 
 def get_account_groups():
     delete_file_if_exists(RESULT_FILES['GROUPS'])
