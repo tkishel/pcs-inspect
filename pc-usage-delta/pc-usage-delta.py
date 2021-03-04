@@ -82,6 +82,12 @@ def command_line_configure():
     pc_parser.add_argument('-tu', '--time_range_unit',
         type=str, default=defaults['TIME_RANGE_UNIT'], choices=['day', 'week', 'month', 'year'],
         help="(Optional) Time Range Unit to limit the usage query. Default: '%s'" % defaults['TIME_RANGE_UNIT'])
+    pc_parser.add_argument('-c', '--customer_name',
+        type=str,
+        help='(Optional) Customer Name')
+    pc_parser.add_argument('-sa', '--support_api',
+        action='store_true',
+        help='(Optional) Use the Support API to collect data')
     args = pc_parser.parse_args()
     result['PRISMA_API_ENDPOINT'] = args.url
     result['PRISMA_ACCESS_KEY']   = args.access_key
@@ -98,6 +104,8 @@ def command_line_configure():
     result['PERCENT_CHANGE_TRIGGER']      = args.percent_trigger
     result['TIME_RANGE_AMOUNT']           = args.time_range_amount
     result['TIME_RANGE_UNIT']             = args.time_range_unit
+    result['CUSTOMER_NAME']               = args.customer_name
+    result['SUPPORT_API_MODE']            = args.support_api
     return result
 
 ####
@@ -133,6 +141,8 @@ def lambda_configure():
     result['PERCENT_CHANGE_TRIGGER']      = env_var_or_none('PERCENT_CHANGE_TRIGGER', True)    or defaults['PERCENT_CHANGE_TRIGGER']
     result['TIME_RANGE_AMOUNT']           = env_var_or_none('TIME_RANGE_AMOUNT', True)         or defaults['TIME_RANGE_AMOUNT']
     result['TIME_RANGE_UNIT']             = env_var_or_none('TIME_RANGE_UNIT')                 or defaults['TIME_RANGE_UNIT']
+    result['CUSTOMER_NAME']               = ''
+    result['SUPPORT_API_MODE']            = False
     if not result['PRISMA_API_ENDPOINT']:
         output('Error: PRISMA_API_ENDPOINT Undefined')
         sys.exit()
@@ -192,22 +202,54 @@ def get_prisma_login(config):
 ####
 
 def get_cloud_accounts(config):
-    encoded_query_params = urlencode({'excludeAccountGroupDetails': "true"})
-    api_url = '%s/cloud?%s' % (config['PRISMA_API_ENDPOINT'], encoded_query_params)
-    api_response = make_api_call(config, 'GET', api_url)
-    cloud_accounts = json.loads(api_response)
-    return cloud_accounts
+    account_list = []
+    if config['SUPPORT_API_MODE']:
+        body_params = {'customerName': '%s' % config['CUSTOMER_NAME']}
+        request_data = json.dumps(body_params)
+        api_response = make_api_call(config, 'POST', '%s/_support/cloud' % config['PRISMA_API_ENDPOINT'], request_data)
+        api_response_json = json.loads(api_response)
+        for account in api_response_json:
+            if account['numberOfChildAccounts'] > 0:
+                api_response_children = make_api_call(config, 'POST', '%s/_support/cloud/%s/%s/project' % (config['PRISMA_API_ENDPOINT'], account['cloudType'], account['accountId']), request_data)
+                account_list.extend(parse_account_children(account, api_response_children))
+            else:
+                account_list.append(account)
+    else:
+        api_response = make_api_call(config, 'GET', '%s/cloud' % config['PRISMA_API_ENDPOINT'])
+        api_response_json = json.loads(api_response)
+        for account in api_response_json:
+            if account['accountType'] == 'organization':
+                api_response_children = make_api_call(config, 'GET', '%s/cloud/%s/%s/project' % (config['PRISMA_API_ENDPOINT'], account['cloudType'], account['accountId']))
+                account_list.extend(parse_account_children(account, api_response_children))
+            else:
+                account_list.append(account)
+    return account_list
+
+def parse_account_children(account, api_response_children):
+    children = []
+    api_response_children_json = json.loads(api_response_children)
+    for child_account in api_response_children_json:
+        # Children of an organization include the parent, but numberOfChildAccounts is always reported as zero by the endpoint.
+        if account['accountId'] == child_account['accountId']:
+            child_account['numberOfChildAccounts'] = account['numberOfChildAccounts']
+        children.append(child_account)
+    return children
 
 ####
 
 def get_cloud_account_usage(config, cloud_account):
+    body_params = {
+        'accountIds': [cloud_account['accountId']],
+        'cloudType': cloud_account['cloudType'],
+        'timeRange': {"value": {"unit": "%s" % config['TIME_RANGE_UNIT'], "amount": config['TIME_RANGE_AMOUNT']}, "type": "relative"}
+    }
     encoded_query_params = urlencode({'cloud_type': cloud_account['cloudType']})
-    api_url = '%s/license/api/v1/usage/?%s' % (config['PRISMA_API_ENDPOINT'], encoded_query_params)
-    body_data = json.dumps({
-        "accountIds": [cloud_account['accountId']],
-        "cloudType": cloud_account['cloudType'],
-        "timeRange": {"value": {"unit":"%s" % config['TIME_RANGE_UNIT'], "amount":config['TIME_RANGE_AMOUNT']}, "type":"relative"}
-    })
+    if config['SUPPORT_API_MODE']:
+        body_params['customerName'] = '%s' % config['CUSTOMER_NAME']
+        api_url = '%s/_support/license/api/v1/usage/?%s' % (config['PRISMA_API_ENDPOINT'], encoded_query_params)
+    else:
+        api_url = '%s/license/api/v1/usage/?%s' % (config['PRISMA_API_ENDPOINT'], encoded_query_params)
+    body_data = json.dumps(body_params)
     api_response = make_api_call(config, 'POST', api_url, body_data)
     cloud_account_usage = json.loads(api_response)
     return cloud_account_usage
