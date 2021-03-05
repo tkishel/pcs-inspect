@@ -225,17 +225,19 @@ def get_assets():
 # And '/_support/alert/policy' does return alertCount, but I cannot tell if that is all (Open or Closed) or just Open Alerts, and returns fewer Policies than '_support/policy' ... given the same parameters.
 # Instead, this script merges the results of the '/_support/alert/aggregate' endpoint with the results of the '/_support/policy' endpoint.
 
+# TJK ?policy.enabled=true
+
 def get_policies():
     delete_file_if_exists(RESULT_FILES['POLICIES'])
     if SUPPORT_API_MODE:
         body_params = {"customerName": "%s" % CUSTOMER_NAME}
         request_data = json.dumps(body_params)
-        api_response = make_api_call('POST', '%s/_support/policy?policy.enabled=true' % PRISMA_API_ENDPOINT, request_data)
+        api_response = make_api_call('POST', '%s/_support/policy' % PRISMA_API_ENDPOINT, request_data)
         result_file = open(RESULT_FILES['POLICIES'], 'wb')
         result_file.write(api_response)
         result_file.close()
     else:
-        api_response = make_api_call('GET', '%s/policy?policy.enabled=true' % PRISMA_API_ENDPOINT)
+        api_response = make_api_call('GET', '%s/policy' % PRISMA_API_ENDPOINT)
         result_file = open(RESULT_FILES['POLICIES'], 'wb')
         result_file.write(api_response)
         result_file.close()
@@ -526,6 +528,7 @@ for this_policy in DATA['POLICIES']:
     else:
         policies[this_policy_id]['alertCount']      = this_policy['openAlertsCount']    
     policies[this_policy_id]['policyName']          = this_policy['name']
+    policies[this_policy_id]['policyEnabled']       = this_policy['enabled']
     policies[this_policy_id]['policySeverity']      = this_policy['severity']
     policies[this_policy_id]['policyType']          = this_policy['policyType']
     policies[this_policy_id]['policyShiftable']     = 'build' in this_policy['policySubTypes']
@@ -599,6 +602,8 @@ alert_totals_by_alert = {
     'open_high':           0,
     'open_medium':         0,
     'open_low':            0,
+    'policy_deleted':      0,
+    'policy_disabled':     0,
     'resolved':            0,
     'resolved_high':       0,
     'resolved_medium':     0,
@@ -613,9 +618,19 @@ alert_totals_by_alert = {
     'snoozed_medium':      0,
     'snoozed_low':         0,
     'shiftable':           0,
+    'anomaly':             0,
+    'audit_event':         0,
+    'config':              0,
+    'data':                0,
+    'iam':                 0,
+    'network':             0,
     'custom':              0,
     'default':             0
 }
+
+# Alerts can contain a reference to a Policy that has been deleted.
+
+policy_deleted = {}
 
 # Alert data includes Open and Closed Alerts.
 
@@ -634,37 +649,47 @@ if SUPPORT_API_MODE:
 else:
     for this_alert in DATA['ALERTS']:
         this_policy_id = this_alert['policy']['policyId']
-        if not this_policy_id in policies:
-            if DEBUG_MODE:
-                output('Skipping Alert: Policy Deleted or Disabled: Policy ID: %s' % this_policy_id)
-            continue
-        policy_name = policies[this_policy_id]['policyName']
-        # Compliance Standards
-        for compliance_standard_name in policies[this_policy_id]['complianceStandards']:
-            compliance_standards_counts_from_alerts.setdefault(compliance_standard_name, {'high': 0, 'medium': 0, 'low': 0})
-            compliance_standards_counts_from_alerts[compliance_standard_name][policies[this_policy_id]['policySeverity']] += 1
-        # Policies
-        policy_counts_from_alerts.setdefault(policy_name, {'policyId': this_policy_id, 'alertCount': 0})
-        policy_counts_from_alerts[policy_name]['alertCount']          += 1
-        policy_totals_by_alert[policies[this_policy_id]['policySeverity']] += 1
-        policy_totals_by_alert[policies[this_policy_id]['policyType']]     += 1
-        # Alerts
+        if this_alert['policy']['systemDefault'] == True:
+            alert_totals_by_alert['default']    += 1
+        else:
+            alert_totals_by_alert['custom']     += 1
+        alert_totals_by_alert[this_alert['policy']['policyType']] += 1
+        if this_alert['policy']['remediable']:
+            alert_totals_by_alert['remediable'] += 1
+            alert_totals_by_alert['remediable_%s' % this_alert['status']] += 1
         alert_totals_by_alert[this_alert['status']] += 1
         if 'reason' in this_alert:
             if this_alert['reason'] == 'RESOURCE_DELETED':
                 alert_totals_by_alert['resolved_deleted'] += 1
             if this_alert['reason'] == 'RESOURCE_UPDATED':
                 alert_totals_by_alert['resolved_updated'] += 1
-        alert_totals_by_alert['%s_%s' % (this_alert['status'], policies[this_policy_id]['policySeverity'])] += 1
-        if this_alert['policy']['remediable']:
-            alert_totals_by_alert['remediable'] += 1
-            alert_totals_by_alert['remediable_%s' % this_alert['status']] += 1
+        # This is all of the data we can collect without a related Policy.
+        if not this_policy_id in policies:
+            if this_alert['reason'] == 'POLICY_DELETED':
+                policy_deleted.setdefault(this_policy_id, 0)
+                policy_deleted[this_policy_id] += 1
+                alert_totals_by_alert['policy_deleted'] += 1          
+            if DEBUG_MODE:
+                output('Skipping Alert: Policy Deleted or Disabled: Policy ID: %s' % this_policy_id)
+            continue
+        # Policy data from the related Policy.
+        policy_name = policies[this_policy_id]['policyName']
+        policy_counts_from_alerts.setdefault(policy_name, {'policyId': this_policy_id, 'alertCount': 0})
+        policy_counts_from_alerts[policy_name]['alertCount'] += 1
+        policy_totals_by_alert[policies[this_policy_id]['policySeverity']] += 1
+        policy_totals_by_alert[policies[this_policy_id]['policyType']]     += 1
+        if policies[this_policy_id]['policyEnabled'] == False:
+            policy_disabled.setdefault(policy_name, 0)
+            policy_disabled[policy_name] += 1
+            alert_totals_by_alert['policy_disabled'] += 1 
+        # Compliance Standard data from the related Policy.
+        for compliance_standard_name in policies[this_policy_id]['complianceStandards']:
+            compliance_standards_counts_from_alerts.setdefault(compliance_standard_name, {'high': 0, 'medium': 0, 'low': 0})
+            compliance_standards_counts_from_alerts[compliance_standard_name][policies[this_policy_id]['policySeverity']] += 1
+        # Alert data from the related Policy.
         if policies[this_policy_id]['policyShiftable']:
             alert_totals_by_alert['shiftable']  += 1
-        if policies[this_policy_id]['policySystemDefault'] == True:
-            alert_totals_by_alert['default']    += 1
-        else:
-            alert_totals_by_alert['custom']     += 1
+        alert_totals_by_alert['%s_%s' % (this_alert['status'], policies[this_policy_id]['policySeverity'])] += 1
     
 ##########################################################################################
 # Variable output variables.
@@ -697,25 +722,33 @@ output()
 rows = [
     ('Number of Assets',               asset_count),
     ('',''),
-    ('Number of Cloud Accounts',       len(DATA['ACCOUNTS'])), # (Not Including Child Accounts)
+    ('Number of Cloud Accounts',       len(DATA['ACCOUNTS'])),
+    ('',''),
     ('Cloud Accounts Disabled',        sum(x.get('enabled') == False for x in DATA['ACCOUNTS'])),
     ('Cloud Accounts Enabled',         sum(x.get('enabled') == True for x in DATA['ACCOUNTS'])),
     ('',''),
     ('Number of Cloud Account Groups', len(DATA['GROUPS'])),
     ('',''),
     ('Number of Alert Rules',          len(DATA['RULES'])),
+    ('',''),
     ('Alert Rules Disabled',           sum(x.get('enabled') == False for x in DATA['RULES'])),
     ('Alert Rules Enabled',            sum(x.get('enabled') == True for x in DATA['RULES'])),
     ('',''),
     ('Number of Integrations',         len(DATA['INTEGRATIONS'])),
+    ('',''),
     ('Integrations Disabled',          sum(x.get('enabled') == False for x in DATA['INTEGRATIONS'])),
     ('Integrations Enabled',           sum(x.get('enabled') == True for x in DATA['INTEGRATIONS'])),
     ('',''),
     ('Number of Policies',             len(DATA['POLICIES'])),
+    ('',''),
+    ('Policies Disabled',              sum(x.get('enabled') == False for x in DATA['POLICIES'])),
+    ('Policies Enabled',               sum(x.get('enabled') == True for x in DATA['POLICIES'])),
+    ('',''),
     ('Policies Custom',                sum(x.get('systemDefault') == False for x in DATA['POLICIES'])),
     ('Policies Default',               sum(x.get('systemDefault') == True for x in DATA['POLICIES'])),
     ('',''),
     ('Number of Users',                len(DATA['USERS'])),
+    ('',''),
     ('Users Disabled',                 sum(x.get('enabled') == False for x in DATA['USERS'])),
     ('Users Enabled',                  sum(x.get('enabled') == True for x in DATA['USERS'])),    
 ]
@@ -730,9 +763,6 @@ for compliance_standard_name in sorted(compliance_standards_counts_from_policies
     alert_count_medium = compliance_standards_counts_from_policies[compliance_standard_name]['medium']
     alert_count_low    = compliance_standards_counts_from_policies[compliance_standard_name]['low']
     rows.append((compliance_standard_name, alert_count_high, alert_count_medium, alert_count_low) )
-rows.append((''))
-rows.append((''))
-# rows.append(('Time Range: %s' % VAR_TIME_RANGE, ''))
 write_sheet(panda_writer, 'Open Alerts by Standard', rows)
 
 if not SUPPORT_API_MODE:
@@ -751,9 +781,10 @@ if not SUPPORT_API_MODE:
 output('Saving Alerts by Policy Worksheet(s)')
 output()
 rows = []
-rows.append(('Policy', 'UPI', 'Severity', 'Type', 'With IAC', 'With Remediation', 'Alert Count', 'Compliance Standards'))
+rows.append(('Policy', 'Enabled', 'UPI', 'Severity', 'Type', 'With IAC', 'With Remediation', 'Alert Count', 'Compliance Standards'))
 for policy_name in sorted(policies_by_name):
     this_policy_id        = policies_by_name[policy_name]['policyId']
+    policy_enabled        = policies[this_policy_id]['policyEnabled']
     policy_upi            = policies[this_policy_id]['policyUpi']
     policy_severity       = policies[this_policy_id]['policySeverity']
     policy_type           = policies[this_policy_id]['policyType']
@@ -761,17 +792,15 @@ for policy_name in sorted(policies_by_name):
     policy_is_remediable  = policies[this_policy_id]['policyRemediable']
     policy_alert_count    = policies[this_policy_id]['alertCount']
     policy_standards_list = ','.join(map(str, policies[this_policy_id]['complianceStandards']))
-    rows.append((policy_name, policy_upi, policy_severity, policy_type, policy_is_remediable, policy_is_remediable, policy_alert_count, policy_standards_list))
-rows.append((''))
-rows.append((''))
-# rows.append(('Time Range: %s' % VAR_TIME_RANGE, ''))
+    rows.append((policy_name, policy_enabled, policy_upi, policy_severity, policy_type, policy_is_remediable, policy_is_remediable, policy_alert_count, policy_standards_list))
 write_sheet(panda_writer, 'Open Alerts by Policy', rows)
 
 if not SUPPORT_API_MODE:
     rows = []
-    rows.append(('Policy', 'UPI', 'Severity', 'Type', 'With IAC', 'With Remediation', 'Alert Count', 'Compliance Standards'))
+    rows.append(('Policy', 'Enabled', 'UPI', 'Severity', 'Type', 'With IAC', 'With Remediation', 'Alert Count', 'Compliance Standards'))
     for policy_name in sorted(policy_counts_from_alerts):
         this_policy_id        = policy_counts_from_alerts[policy_name]['policyId']
+        policy_enabled        = policies[this_policy_id]['policyEnabled']
         policy_upi            = policies[this_policy_id]['policyUpi']
         policy_severity       = policies[this_policy_id]['policySeverity']
         policy_type           = policies[this_policy_id]['policyType']
@@ -779,7 +808,7 @@ if not SUPPORT_API_MODE:
         policy_is_remediable  = policies[this_policy_id]['policyRemediable']
         policy_alert_count    = policy_counts_from_alerts[policy_name]['alertCount']
         policy_standards_list = ','.join(map(str, policies[this_policy_id]['complianceStandards']))
-        rows.append((policy_name, policy_upi, policy_severity, policy_type, policy_is_remediable, policy_is_remediable, policy_alert_count, policy_standards_list))
+        rows.append((policy_name, policy_enabled, policy_upi, policy_severity, policy_type, policy_is_remediable, policy_is_remediable, policy_alert_count, policy_standards_list))
     rows.append((''))
     rows.append((''))
     rows.append(('Time Range: %s' % TIME_RANGE_LABEL, ''))
@@ -789,7 +818,6 @@ output('Saving Alerts Summary Worksheet(s)')
 output()
 rows = [
     ('Number of Compliance Standards with Open Alerts',  count_of_compliance_standards_with_alerts_from_policies),
-    ('',''),
     ('Number of Policies with Open Alerts',              count_of_policies_with_alerts_from_policies),
     ('',''),
     ('Open Alerts',                                      alert_totals_by_policy['open']),
@@ -799,18 +827,17 @@ rows = [
     ('Open Alerts Low-Severity',                         alert_totals_by_policy['open_low']),
     ('',''),
     ('Open Anomaly Alerts',                              alert_totals_by_policy['anomaly']),
+    ('Open Audit Alerts',                                alert_totals_by_policy['audit_event']),
     ('Open Config Alerts',                               alert_totals_by_policy['config']),
+    ('Open Data Alerts',                                 alert_totals_by_policy['data']),
+    ('Open IAM Alerts',                                  alert_totals_by_policy['iam']),
     ('Open Network Alerts',                              alert_totals_by_policy['network']),
     ('',''),
     ('Open Alerts with IaC',                             alert_totals_by_policy['shiftable']),
-    ('',''),
     ('Open Alerts with Remediation',                     alert_totals_by_policy['remediable']),
     ('',''),
     ('Open Alerts Generated by Custom Policies',         alert_totals_by_policy['custom']),
     ('Open Alerts Generated by Default Policies',        alert_totals_by_policy['default']),
-    ('',''),
-    ('',''),
-    # ('Time Range: %s' %VAR_TIME_RANGE, ''),
 ]
 write_sheet(panda_writer, 'Open Alerts Summary', rows)
     
@@ -822,48 +849,55 @@ if not SUPPORT_API_MODE:
         ('',''),
         ('Number of Alerts',                            alert_count),
         ('',''),
+        ('Anomaly Alerts',                              alert_totals_by_alert['anomaly']),
+        ('Audit Alerts',                                alert_totals_by_alert['audit_event']),
+        ('Config Alerts',                               alert_totals_by_alert['config']),
+        ('Data Alerts',                                 alert_totals_by_alert['data']),
+        ('IAM Alerts',                                  alert_totals_by_alert['iam']),
+        ('Network Alerts',                              alert_totals_by_alert['network']),
+        ('',''),
         ('Open Alerts',                                 alert_totals_by_alert['open']),
+        ('Dismissed Alerts',                            alert_totals_by_alert['dismissed']),
+        ('Resolved Alerts',                             alert_totals_by_alert['resolved']),
+        ('Snoozed Alerts',                              alert_totals_by_alert['snoozed']),
         ('',''),
         ('Open Alerts High-Severity',                   alert_totals_by_alert['open_high']),
         ('Open Alerts Medium-Severity',                 alert_totals_by_alert['open_medium']),
         ('Open Alerts Low-Severity',                    alert_totals_by_alert['open_low']),
         ('',''),
-        ('Resolved Alerts',                             alert_totals_by_alert['resolved']),
-        ('',''),
-        ('Resolved By Delete',                          alert_totals_by_alert['resolved_deleted']),
-        ('Resolved By Update',                          alert_totals_by_alert['resolved_updated']),
+        ('Dismissed Alerts High-Severity',              alert_totals_by_alert['dismissed_high']),
+        ('Dismissed Alerts Medium-Severity',            alert_totals_by_alert['dismissed_medium']),
+        ('Dismissed Alerts Low-Severity',               alert_totals_by_alert['dismissed_low']),
         ('',''),
         ('Resolved Alerts High-Severity',               alert_totals_by_alert['resolved_high']),
         ('Resolved Alerts Medium-Severity',             alert_totals_by_alert['resolved_medium']),
         ('Resolved Alerts Low-Severity',                alert_totals_by_alert['resolved_low']),
         ('',''),
-        ('Snoozed Alerts',                              alert_totals_by_alert['snoozed']),
-        ('',''),
         ('Snoozed Alerts High-Severity',                alert_totals_by_alert['snoozed_high']),
         ('Snoozed Alerts Medium-Severity',              alert_totals_by_alert['snoozed_medium']),
         ('Snoozed Alerts Low-Severity',                 alert_totals_by_alert['snoozed_low']),
         ('',''),
-        ('Dismissed Alerts',                            alert_totals_by_alert['dismissed']),
+        ('Resolved By Delete Policy',                   alert_totals_by_alert['policy_deleted']),
+        ('Resolved By Delete Resourse',                 alert_totals_by_alert['resolved_deleted']),
+        ('Resolved By Update Resourse',                 alert_totals_by_alert['resolved_updated']),
         ('',''),
-        ('Dismissed Alerts High-Severity',              alert_totals_by_alert['dismissed_high']),
-        ('Dismissed Alerts Medium-Severity',            alert_totals_by_alert['dismissed_medium']),
-        ('Dismissed Alerts Low-Severity',               alert_totals_by_alert['dismissed_low']),
-        ('',''),
-        ('Anomaly Alerts',                              policy_totals_by_alert['anomaly']),
-        ('Config Alerts',                               policy_totals_by_alert['config']),
-        ('Network Alerts',                              policy_totals_by_alert['network']),
-        ('',''),
-        ('Alerts with IaC',                             alert_totals_by_alert['shiftable']),
-        ('',''),
-        ('Alerts with Remediation',                     alert_totals_by_alert['remediable']),
+        ('Alerts Generated by Policies w IaC',          alert_totals_by_alert['shiftable']),
+        ('Alerts Generated by Policies w Remediation',  alert_totals_by_alert['remediable']),
         ('',''),
         ('Alerts Generated by Custom Policies',         alert_totals_by_alert['custom']),
         ('Alerts Generated by Default Policies',        alert_totals_by_alert['default']),
+        ('Alerts Generated by Disabled Policies',       alert_totals_by_alert['policy_disabled']),
         ('',''),
         ('',''),
         ('Time Range: %s' % TIME_RANGE_LABEL, ''),
     ]
     write_sheet(panda_writer, 'Open Closed Alerts Summary', rows)
+
+    rows = []
+    rows.append(('Deleted Policy', 'Alert Count'))
+    for this_policy_id in sorted(policy_deleted):
+        rows.append((this_policy_id, policy_deleted[this_policy_id]))
+    write_sheet(panda_writer, 'Deleted Policies', rows)
 
 save_sheet(panda_writer)
 output('Results saved as: %s' % OUTPUT_FILE_XLS)
