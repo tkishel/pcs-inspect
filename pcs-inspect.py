@@ -463,7 +463,9 @@ def read_collected_data():
 ##########################################################################################
 
 def process_collected_data():
-    if CONFIG['SUPPORT_API_MODE']:
+    # SUPPORT_API_MODE saves a dictionary (of Open Alerts) instead of a list.
+    if type(DATA['ALERTS']) is dict:
+        CONFIG['SUPPORT_API_MODE'] = True
         RESULTS['aggregated_alerts_by'] = process_aggregated_alerts(DATA['ALERTS'])
     # POLICIES
     RESULTS['policies_by_name'] = {}
@@ -714,7 +716,6 @@ def output_collected_data():
 ##
 
 def output_utilization(panda_writer):
-    output()
     output('Saving Utilization Worksheet')
     output()
     rows = [
@@ -908,11 +909,11 @@ def output_alerts_summary(panda_writer):
 ##########################################################################################
 ##########################################################################################
 
-# This is something of a constant after it has been initially populated.
-# Except CONFIG['PRISMA_API_HEADERS']['x-redlock-auth'] and CONFIG['SUPPORT_API_MODE'] are conditional.
+# This is something of a constant after it has been initially populated by configure(),
+# except CONFIG['PRISMA_API_HEADERS']['x-redlock-auth'] and CONFIG['SUPPORT_API_MODE'] are added/updated later.
 CONFIG = configure(args)
 
-# This is a constant after it has been initially populated.
+# This is a constant after it has been initially populated by read_collected_data().
 DATA = {}
 
 # This is not a constant, just capitalized for visibility.
@@ -922,16 +923,13 @@ if CONFIG['RUN_MODE'] in ['collect', 'auto']:
     output('Collecting Data')
     output()
     collect_data()
-    if CONFIG['RUN_MODE'] == 'collect':
-        output("Run '%s --customer_name %s --mode process' to process the collected data and save to a spreadsheet." % (os.path.basename(__file__), CONFIG['CUSTOMER_NAME']))
-        sys.exit(0)
+
+if CONFIG['RUN_MODE'] == 'collect':
+    output("Run '%s --customer_name %s --mode process' to process the collected data and save to a spreadsheet." % (os.path.basename(__file__), CONFIG['CUSTOMER_NAME']))
 
 if CONFIG['RUN_MODE'] in ['process', 'auto']:
     output('Processing Data')
     output()
     read_collected_data()
-    # SUPPORT_API_MODE saves a dictionary (of Open Alerts) instead of a list.
-    if type(DATA['ALERTS']) is dict:
-        CONFIG['SUPPORT_API_MODE'] = True
     process_collected_data()
     output_collected_data()
