@@ -289,7 +289,7 @@ def get_alerts(output_file_name):
             output("Error with '/alert/jobs' API: 'status' in response not in ('IN_PROGRESS','READY_TO_DOWNLOAD'): %s" % api_response_json)
         # This returns a list (of Open and Closed Alerts).
 
-## Valid options: policy.name, policy.type, policy.severity, or alert.status.
+## Valid filter options: policy.name, policy.type, policy.severity, or alert.status.
 
 def get_alerts_aggregate(group_by_field):
     body_params = {}
@@ -470,7 +470,8 @@ def read_collected_data():
 # alert_status    = {'open': 0, 'dismissed': 0, 'snoozed': 0, 'resolved': 0}
 
 def process_collected_data():
-    # SUPPORT_API_MODE saves a dictionary (of Open Alerts) instead of a list.
+    # SUPPORT_API_MODE saves a dictionary (of Open) Alerts instead of a list.
+    # Use that to override any '--support_api' argument.
     if type(DATA['ALERTS']) is dict:
         CONFIG['SUPPORT_API_MODE'] = True
         RESULTS['alerts_aggregated_by'] = process_aggregated_alerts(DATA['ALERTS'])
@@ -519,7 +520,7 @@ def process_collected_data():
     process_summary()
 
 ##########################################################################################
-# SUPPORT_API_MODE: Loop through '/_support/alert/aggregate' and collect the details.
+# SUPPORT_API_MODE: Loop through '/_support/alert/aggregate' results and collect the details.
 # Alert counts from that endpoint include Open Alerts and are scoped to a time range.
 ##########################################################################################
 
@@ -543,7 +544,7 @@ def process_aggregated_alerts(alerts):
 ##########################################################################################
 # Loop through all Policies and collect the details.
 # Alert counts from this endpoint include Open Alerts and are not scoped to a time range.
-# SUPPORT_API_MODE: Substitute aggregated Alerts (as _support/policy does not return openAlertsCount).
+# SUPPORT_API_MODE: Substitute aggregated Alerts (as '/_support/policy' does not return openAlertsCount).
 ##########################################################################################
 
 def process_policies(policies):
@@ -598,6 +599,7 @@ def process_policies(policies):
 # Alert data includes Open and Closed Alerts.
 # Some details come from the Alert, some from the related Policy and Compliance Standards.
 # Alerts can contain a reference to a Policy that has been deleted.
+# SUPPORT_API_MODE: Substitute aggregated Alerts (as '/_support/policy' does not return openAlertsCount).
 ##########################################################################################
 
 def process_alerts(alerts):    
