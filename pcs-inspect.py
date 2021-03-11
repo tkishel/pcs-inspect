@@ -328,7 +328,7 @@ def get_accounts(output_file_name):
         api_response = make_api_call('POST', '%s/_support/cloud' % CONFIG['PRISMA_API_ENDPOINT'], request_data)
         api_response_json = json.loads(api_response)
         for account in api_response_json:
-            if account['numberOfChildAccounts'] > 0:
+            if account['numberOfChildAccounts'] > 0:    # > Or account['accountType'] == 'organization'
                 api_response_children = make_api_call('POST', '%s/_support/cloud/%s/%s/project' % (CONFIG['PRISMA_API_ENDPOINT'], account['cloudType'], account['accountId']), request_data)
                 account_list.extend(parse_account_children(account, api_response_children))
             else:
@@ -337,7 +337,7 @@ def get_accounts(output_file_name):
         api_response = make_api_call('GET', '%s/cloud' % CONFIG['PRISMA_API_ENDPOINT'])
         api_response_json = json.loads(api_response)
         for account in api_response_json:
-            if account['accountType'] == 'organization':
+            if account['accountType'] == 'organization': # ? Or account['numberOfChildAccounts'] > 0
                 api_response_children = make_api_call('GET', '%s/cloud/%s/%s/project' % (CONFIG['PRISMA_API_ENDPOINT'], account['cloudType'], account['accountId']))
                 account_list.extend(parse_account_children(account, api_response_children))
             else:
@@ -462,7 +462,7 @@ def read_collected_data():
 # Process mode: Process the data.
 ##########################################################################################
 
-# cloud_type      = {'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba': 0, 'oci': 0}
+# cloud_type      = {'all', 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba': 0, 'oci': 0}
 # policy_mode     = {'custom': 0, 'default': 0}
 # policy_feature  = {'remediable': 0, 'shiftable': 0}
 # policy_severity = {'high': 0, 'medium': 0, 'low': 0}
@@ -522,6 +522,7 @@ def process_collected_data():
 ##########################################################################################
 # SUPPORT_API_MODE: Loop through '/_support/alert/aggregate' results and collect the details.
 # Alert counts from that endpoint include Open Alerts and are scoped to a time range.
+# Valid filter options: policy.name, policy.type, policy.severity, or alert.status.
 ##########################################################################################
 
 def process_aggregated_alerts(alerts):
@@ -555,6 +556,7 @@ def process_policies(policies):
         RESULTS['policies'][this_policy_id]['policyEnabled']       = this_policy['enabled']
         RESULTS['policies'][this_policy_id]['policySeverity']      = this_policy['severity']
         RESULTS['policies'][this_policy_id]['policyType']          = this_policy['policyType']
+        RESULTS['policies'][this_policy_id]['policyCloudType']     = this_policy['cloudType'].lower()
         RESULTS['policies'][this_policy_id]['policyShiftable']     = 'build' in this_policy['policySubTypes']
         RESULTS['policies'][this_policy_id]['policyRemediable']    = this_policy['remediable']
         RESULTS['policies'][this_policy_id]['policySystemDefault'] = this_policy['systemDefault']
@@ -702,6 +704,12 @@ def output_utilization(panda_writer):
         ('Cloud Accounts Disabled',        sum(x.get('enabled') == False for x in DATA['ACCOUNTS'])),
         ('Cloud Accounts Enabled',         sum(x.get('enabled') == True for x in DATA['ACCOUNTS'])),
         ('',''),
+        ('Cloud Accounts AWS',             sum(x.get('cloudType').lower() == 'aws' for x in DATA['ACCOUNTS'])),
+        ('Cloud Accounts Azure',           sum(x.get('cloudType').lower() == 'azure' for x in DATA['ACCOUNTS'])),
+        ('Cloud Accounts Google',          sum(x.get('cloudType').lower() == 'gcp' for x in DATA['ACCOUNTS'])),
+        ('Cloud Accounts Alibaba',         sum(x.get('cloudType').lower() == 'alibaba' for x in DATA['ACCOUNTS'])),
+        ('Cloud Accounts Oracle',          sum(x.get('cloudType').lower() == 'oci' for x in DATA['ACCOUNTS'])),
+        ('',''),
         ('Number of Cloud Account Groups', len(DATA['GROUPS'])),
         ('',''),
         ('Number of Alert Rules',          len(DATA['RULES'])),
@@ -761,34 +769,36 @@ def output_alerts_by_policy(panda_writer):
     output('Saving Alerts by Policy Worksheet(s)')
     output()
     rows = []
-    rows.append(('Policy', 'Enabled', 'UPI', 'Severity', 'Type', 'With IAC', 'With Remediation', 'Alert Count', 'Compliance Standards'))
+    rows.append(('Policy', 'UPI', 'Alert Count', 'Enabled', 'Severity', 'Type', 'Cloud Type', 'With IAC', 'With Remediation', 'Compliance Standards'))
     # Consider replacing sorted(RESULTS['policies_by_name']) with sorted(RESULTS['policies'], key=lambda x: (RESULTS['policies'][x]['name'])
     for policy_name in sorted(RESULTS['policies_by_name']):
         this_policy_id        = RESULTS['policies_by_name'][policy_name]['policyId']
-        policy_enabled        = RESULTS['policies'][this_policy_id]['policyEnabled']
         policy_upi            = RESULTS['policies'][this_policy_id]['policyUpi']
+        policy_alert_count    = RESULTS['policies'][this_policy_id]['alertCount']
+        policy_enabled        = RESULTS['policies'][this_policy_id]['policyEnabled']
         policy_severity       = RESULTS['policies'][this_policy_id]['policySeverity']
         policy_type           = RESULTS['policies'][this_policy_id]['policyType']
+        policy_cloud_type     = RESULTS['policies'][this_policy_id]['policyCloudType']
         policy_is_shiftable   = RESULTS['policies'][this_policy_id]['policyShiftable']
         policy_is_remediable  = RESULTS['policies'][this_policy_id]['policyRemediable']
-        policy_alert_count    = RESULTS['policies'][this_policy_id]['alertCount']
         policy_standards_list = ','.join(map(str, RESULTS['policies'][this_policy_id]['complianceStandards']))
-        rows.append((policy_name, policy_enabled, policy_upi, policy_severity, policy_type, policy_is_remediable, policy_is_remediable, policy_alert_count, policy_standards_list))
+        rows.append((policy_name, policy_upi, policy_alert_count, policy_enabled, policy_severity, policy_type, policy_cloud_type, policy_is_remediable, policy_is_remediable, policy_standards_list))
     write_sheet(panda_writer, 'Open Alerts by Policy', rows)
     if not CONFIG['SUPPORT_API_MODE']:
         rows = []
         rows.append(('Policy', 'Enabled', 'UPI', 'Severity', 'Type', 'With IAC', 'With Remediation', 'Alert Count', 'Compliance Standards'))
         for policy_name in sorted(RESULTS['policies_from_alerts']):
             this_policy_id        = RESULTS['policies_from_alerts'][policy_name]['policyId']
-            policy_enabled        = RESULTS['policies'][this_policy_id]['policyEnabled']
             policy_upi            = RESULTS['policies'][this_policy_id]['policyUpi']
+            policy_alert_count    = RESULTS['policies_from_alerts'][policy_name]['alertCount'] # Not RESULTS['policies'][this_policy_id]['openAlertsCount'] 
+            policy_enabled        = RESULTS['policies'][this_policy_id]['policyEnabled']
             policy_severity       = RESULTS['policies'][this_policy_id]['policySeverity']
             policy_type           = RESULTS['policies'][this_policy_id]['policyType']
+            policy_cloud_type     = RESULTS['policies'][this_policy_id]['policyCloudType']
             policy_is_shiftable   = RESULTS['policies'][this_policy_id]['policyShiftable']
             policy_is_remediable  = RESULTS['policies'][this_policy_id]['policyRemediable']
-            policy_alert_count    = RESULTS['policies_from_alerts'][policy_name]['alertCount']
             policy_standards_list = ','.join(map(str, RESULTS['policies'][this_policy_id]['complianceStandards']))
-            rows.append((policy_name, policy_enabled, policy_upi, policy_severity, policy_type, policy_is_remediable, policy_is_remediable, policy_alert_count, policy_standards_list))
+            rows.append((policy_name, policy_upi, policy_alert_count, policy_enabled, policy_severity, policy_type, policy_cloud_type, policy_is_remediable, policy_is_remediable, policy_standards_list))
         rows.append((''))
         rows.append((''))
         rows.append(('Time Range: %s' % CONFIG['TIME_RANGE_LABEL'], ''))
