@@ -462,7 +462,7 @@ def read_collected_data():
 # Process mode: Process the data.
 ##########################################################################################
 
-# cloud_type      = {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba': 0, 'oci': 0}
+# cloud_type      = {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba_cloud': 0, 'oci': 0}
 # policy_mode     = {'custom': 0, 'default': 0}
 # policy_feature  = {'remediable': 0, 'shiftable': 0}
 # policy_severity = {'high': 0, 'medium': 0, 'low': 0}
@@ -480,25 +480,26 @@ def process_collected_data():
     RESULTS['policies'] = {}
     RESULTS['compliance_standards_from_policies'] = {}
     RESULTS['alert_counts_from_policies'] = {
-        'mode':     {'custom': 0, 'default': 0},
-        'feature':  {'remediable': 0, 'shiftable': 0},
-        'severity': {'high': 0, 'medium': 0, 'low': 0},
-        'status':   {'open': 0, 'dismissed': 0, 'snoozed': 0, 'resolved': 0},
-        'type':     {'anomaly': 0, 'audit_event': 0, 'config': 0, 'data': 0, 'iam': 0, 'network': 0},
+        'cloud_type': {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba_cloud': 0, 'oci': 0},
+        'feature':    {'remediable': 0, 'shiftable': 0},
+        'mode':       {'custom': 0, 'default': 0},
+        'severity':   {'high': 0, 'medium': 0, 'low': 0},
+        'status':     {'open': 0, 'dismissed': 0, 'snoozed': 0, 'resolved': 0},
+        'type':       {'anomaly': 0, 'audit_event': 0, 'config': 0, 'data': 0, 'iam': 0, 'network': 0},
     }
     process_policies(DATA['POLICIES'])
     # ALERTS
     RESULTS['compliance_standards_from_alerts'] = {}
     RESULTS['policies_from_alerts'] = {}
     RESULTS['policy_counts_from_alerts'] = {
-        # TJK
-        'cloud_type': {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba': 0, 'oci': 0},
+        'cloud_type': {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba_cloud': 0, 'oci': 0},
         'severity': {'high': 0, 'medium': 0, 'low': 0},
         'type':     {'anomaly': 0, 'audit_event': 0, 'config': 0, 'data': 0, 'iam': 0, 'network': 0},
     }
     RESULTS['alert_counts_from_alerts'] = {
-        'mode':                 {'custom': 0, 'default': 0},
+        'cloud_type':           {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba_cloud': 0, 'oci': 0},
         'feature':              {'remediable': 0, 'shiftable': 0},
+        'mode':                 {'custom': 0, 'default': 0},
         'policy':               {'disabled': 0, 'deleted': 0},
         'status_by_feature': {
             'remediable':       {'open': 0, 'dismissed': 0, 'snoozed': 0, 'resolved': 0}, 
@@ -522,9 +523,9 @@ def process_collected_data():
     RESULTS['summary']['count_of_assets'] = 0
     RESULTS['summary']['count_of_alerts'] = 0
     RESULTS['summary']['count_of_policies_with_alerts_from_policies']             = 0
-    RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']    = {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba': 0, 'oci': 0}
+    RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']    = {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba_cloud': 0, 'oci': 0}
     RESULTS['summary']['count_of_policies_with_alerts_from_alerts']               = 0
-    RESULTS['summary']['count_of_policies_with_alerts_from_alerts_by_cloud']      = {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba': 0, 'oci': 0}
+    RESULTS['summary']['count_of_policies_with_alerts_from_alerts_by_cloud']      = {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba_cloud': 0, 'oci': 0}
     RESULTS['summary']['count_of_compliance_standards_with_alerts_from_policies'] = 0
     RESULTS['summary']['count_of_compliance_standards_with_alerts_from_alerts']   = 0
     process_summary()
@@ -582,9 +583,10 @@ def process_policies(policies):
                 RESULTS['policies'][this_policy_id]['alertCount'] = 0
         else:
             RESULTS['policies'][this_policy_id]['alertCount']     = this_policy['openAlertsCount']
-        RESULTS['alert_counts_from_policies']['status']['open']                    += RESULTS['policies'][this_policy_id]['alertCount']
-        RESULTS['alert_counts_from_policies']['severity'][this_policy['severity']] += RESULTS['policies'][this_policy_id]['alertCount']
-        RESULTS['alert_counts_from_policies']['type'][this_policy['policyType']]   += RESULTS['policies'][this_policy_id]['alertCount']
+        RESULTS['alert_counts_from_policies']['status']['open']                               += RESULTS['policies'][this_policy_id]['alertCount']
+        RESULTS['alert_counts_from_policies']['severity'][this_policy['severity']]            += RESULTS['policies'][this_policy_id]['alertCount']
+        RESULTS['alert_counts_from_policies']['type'][this_policy['policyType']]              += RESULTS['policies'][this_policy_id]['alertCount']
+        RESULTS['alert_counts_from_policies']['cloud_type'][this_policy['cloudType'].lower()] += RESULTS['policies'][this_policy_id]['alertCount']
         if RESULTS['policies'][this_policy_id]['policyRemediable']:
             RESULTS['alert_counts_from_policies']['feature']['remediable']         += RESULTS['policies'][this_policy_id]['alertCount']
         if RESULTS['policies'][this_policy_id]['policyShiftable']:
@@ -657,10 +659,8 @@ def process_alerts(alerts):
             policy_name = RESULTS['policies'][this_policy_id]['policyName']
             RESULTS['policies_from_alerts'].setdefault(policy_name, {'policyId': this_policy_id, 'alertCount': 0})
             RESULTS['policies_from_alerts'][policy_name]['alertCount'] += 1
-            # TJK
-            # RESULTS['policies_from_alerts'][policy_name][RESULTS['policies'][this_policy_id]['policyCloudType']] += 1
             RESULTS['policy_counts_from_alerts']['severity'][RESULTS['policies'][this_policy_id]['policySeverity']] += 1
-            RESULTS['policy_counts_from_alerts']['type'][RESULTS['policies'][this_policy_id]['policyType']]     += 1
+            RESULTS['policy_counts_from_alerts']['type'][RESULTS['policies'][this_policy_id]['policyType']] += 1
             if RESULTS['policies'][this_policy_id]['policyEnabled'] == False:
                 RESULTS['policies_disabled'].setdefault(policy_name, 0)
                 RESULTS['policies_disabled'][policy_name] += 1
@@ -670,6 +670,7 @@ def process_alerts(alerts):
                 RESULTS['compliance_standards_from_alerts'].setdefault(compliance_standard_name, {'high': 0, 'medium': 0, 'low': 0})
                 RESULTS['compliance_standards_from_alerts'][compliance_standard_name][RESULTS['policies'][this_policy_id]['policySeverity']] += 1
             # Alert data from the related Policy.
+            RESULTS['alert_counts_from_alerts']['cloud_type'][RESULTS['policies'][this_policy_id]['policyCloudType']] += 1
             if RESULTS['policies'][this_policy_id]['policyShiftable']:
                 RESULTS['alert_counts_from_alerts']['feature']['shiftable']  += 1
             RESULTS['alert_counts_from_alerts']['severity_by_status'][this_alert['status']][RESULTS['policies'][this_policy_id]['policySeverity']] += 1
@@ -685,15 +686,13 @@ def process_summary():
         RESULTS['summary']['count_of_policies_with_alerts_from_policies']           = len(RESULTS['alerts_aggregated_by']['policy'])
     else:
         RESULTS['summary']['count_of_alerts']                                       = len(DATA['ALERTS'])
-        # TJK
-        # RESULTS['summary']['count_of_policies_with_alerts_from_alerts_by_cloud']['aws']       = sum(v['alertCount'] != 0 and v['policyCloudType'].lower() == 'aws'     for k,v in RESULTS['policies_from_alerts'].items())
-        RESULTS['summary']['count_of_policies_with_alerts_from_policies']                     = sum(v['alertCount'] != 0 for k,v in RESULTS['policies'].items())
-        RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['aws']     = sum(v['alertCount'] != 0 and v['policyCloudType'].lower() == 'aws'     for k,v in RESULTS['policies'].items())
-        RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['azure']   = sum(v['alertCount'] != 0 and v['policyCloudType'].lower() == 'azure'   for k,v in RESULTS['policies'].items())
-        RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['gcp']     = sum(v['alertCount'] != 0 and v['policyCloudType'].lower() == 'gcp'     for k,v in RESULTS['policies'].items())
-        RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['alibaba'] = sum(v['alertCount'] != 0 and v['policyCloudType'].lower() == 'alibaba' for k,v in RESULTS['policies'].items())
-        RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['oci']     = sum(v['alertCount'] != 0 and v['policyCloudType'].lower() == 'oci'     for k,v in RESULTS['policies'].items())
-        RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['all']     = sum(v['alertCount'] != 0 and v['policyCloudType'].lower() == 'all'     for k,v in RESULTS['policies'].items())
+        RESULTS['summary']['count_of_policies_with_alerts_from_policies']                           = sum(v['alertCount'] != 0 for k,v in RESULTS['policies'].items())
+        RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['aws']           = sum(v['alertCount'] != 0 and v['policyCloudType'].lower() == 'aws'     for k,v in RESULTS['policies'].items())
+        RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['azure']         = sum(v['alertCount'] != 0 and v['policyCloudType'].lower() == 'azure'   for k,v in RESULTS['policies'].items())
+        RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['gcp']           = sum(v['alertCount'] != 0 and v['policyCloudType'].lower() == 'gcp'     for k,v in RESULTS['policies'].items())
+        RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['alibaba_cloud'] = sum(v['alertCount'] != 0 and v['policyCloudType'].lower() == 'alibaba_cloud' for k,v in RESULTS['policies'].items())
+        RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['oci']           = sum(v['alertCount'] != 0 and v['policyCloudType'].lower() == 'oci'     for k,v in RESULTS['policies'].items())
+        RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['all']           = sum(v['alertCount'] != 0 and v['policyCloudType'].lower() == 'all'     for k,v in RESULTS['policies'].items())
         RESULTS['summary']['count_of_policies_with_alerts_from_alerts'] = len(RESULTS['policies_from_alerts'])
         RESULTS['summary']['count_of_compliance_standards_with_alerts_from_alerts'] = len(RESULTS['compliance_standards_from_alerts'])
     RESULTS['summary']['count_of_compliance_standards_with_alerts_from_policies']   = sum(v != {'high': 0, 'medium': 0, 'low': 0} for k,v in RESULTS['compliance_standards_from_policies'].items())
@@ -727,7 +726,7 @@ def output_utilization(panda_writer):
         ('Cloud Accounts AWS',             sum(x.get('cloudType').lower() == 'aws' for x in DATA['ACCOUNTS'])),
         ('Cloud Accounts Azure',           sum(x.get('cloudType').lower() == 'azure' for x in DATA['ACCOUNTS'])),
         ('Cloud Accounts Google',          sum(x.get('cloudType').lower() == 'gcp' for x in DATA['ACCOUNTS'])),
-        ('Cloud Accounts Alibaba',         sum(x.get('cloudType').lower() == 'alibaba' for x in DATA['ACCOUNTS'])),
+        ('Cloud Accounts Alibaba',         sum(x.get('cloudType').lower() == 'alibaba_cloud' for x in DATA['ACCOUNTS'])),
         ('Cloud Accounts Oracle',          sum(x.get('cloudType').lower() == 'oci' for x in DATA['ACCOUNTS'])),
         ('',''),
         ('Number of Cloud Account Groups', len(DATA['GROUPS'])),
@@ -837,9 +836,9 @@ def output_alerts_summary(panda_writer):
         ('Number of AWS Policies with Open Alerts',          RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['aws']),
         ('Number of Azure Policies with Open Alerts',        RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['azure']),
         ('Number of GCP Policies with Open Alerts',          RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['gcp']),
-        ('Number of Alibaba Policies with Open Alerts',      RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['alibaba']),
+        ('Number of Alibaba Policies with Open Alerts',      RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['alibaba_cloud']),
         ('Number of OCI Policies with Open Alerts',          RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['oci']),
-        ('Number of Other Policies with Open Alerts',        RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['all']),
+        ('Number of Cross-Cloud Policies with Open Alerts',  RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']['all']),
         ('',''),
         ('Open Alerts',                                      RESULTS['alert_counts_from_policies']['status']['open']),
         ('',''),
@@ -859,6 +858,13 @@ def output_alerts_summary(panda_writer):
         ('',''),
         ('Open Alerts Generated by Custom Policies',         RESULTS['alert_counts_from_policies']['mode']['custom']),
         ('Open Alerts Generated by Default Policies',        RESULTS['alert_counts_from_policies']['mode']['default']),
+        ('',''),
+        ('Open Alerts for AWS Policies',                     RESULTS['alert_counts_from_policies']['cloud_type']['aws']),
+        ('Open Alerts for Azure Policies',                   RESULTS['alert_counts_from_policies']['cloud_type']['azure']),
+        ('Open Alerts for GCP Policies',                     RESULTS['alert_counts_from_policies']['cloud_type']['gcp']),
+        ('Open Alerts for Alibaba Policies',                 RESULTS['alert_counts_from_policies']['cloud_type']['alibaba_cloud']),
+        ('Open Alerts for OCI Policies',                     RESULTS['alert_counts_from_policies']['cloud_type']['oci']),
+        ('Open Alerts for Cross-Cloud Policies',              RESULTS['alert_counts_from_policies']['cloud_type']['all']),
     ]
     write_sheet(panda_writer, 'Open Alerts Summary', rows)
     if not CONFIG['SUPPORT_API_MODE']:
@@ -907,6 +913,13 @@ def output_alerts_summary(panda_writer):
             ('Alerts Generated by Custom Policies',         RESULTS['alert_counts_from_alerts']['mode']['custom']),
             ('Alerts Generated by Default Policies',        RESULTS['alert_counts_from_alerts']['mode']['default']),
             ('Alerts Generated by Disabled Policies',       RESULTS['alert_counts_from_alerts']['policy']['disabled']),
+            ('',''),
+            ('Alerts for AWS Policies',                     RESULTS['alert_counts_from_alerts']['cloud_type']['aws']),
+            ('Alerts for Azure Policies',                   RESULTS['alert_counts_from_alerts']['cloud_type']['azure']),
+            ('Alerts for GCP Policies',                     RESULTS['alert_counts_from_alerts']['cloud_type']['gcp']),
+            ('Alerts for Alibaba Policies',                 RESULTS['alert_counts_from_alerts']['cloud_type']['alibaba_cloud']),
+            ('Alerts for OCI Policies',                     RESULTS['alert_counts_from_alerts']['cloud_type']['oci']),
+            ('Alerts for Cross-Cloud Policies',             RESULTS['alert_counts_from_alerts']['cloud_type']['all']),
             ('',''),
             ('',''),
             ('Time Range: %s' % CONFIG['TIME_RANGE_LABEL'], ''),
