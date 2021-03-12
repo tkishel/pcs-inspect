@@ -42,8 +42,8 @@ pc_parser.add_argument('-ta', '--time_range_amount',
     help="(Optional) Time Range Amount to limit the Alert query. Default: 1")
 
 pc_parser.add_argument('-tu', '--time_range_unit',
-    type=str, default='week', choices=['day', 'week', 'month', 'year'],
-    help="(Optional) Time Range Unit to limit the Alert query. Default: 'week'")
+    type=str, default='month', choices=['day', 'week', 'month', 'year'],
+    help="(Optional) Time Range Unit to limit the Alert query. Default: 'month'")
 
 pc_parser.add_argument('-m', '--mode',
     type=str, default='auto', choices=['collect', 'process'],
@@ -476,9 +476,9 @@ def process_collected_data():
         CONFIG['SUPPORT_API_MODE'] = True
         RESULTS['alerts_aggregated_by'] = process_aggregated_alerts(DATA['ALERTS'])
     # POLICIES
+    RESULTS['compliance_standards_from_policies'] = {}
     RESULTS['policies_by_name'] = {}
     RESULTS['policies'] = {}
-    RESULTS['compliance_standards_from_policies'] = {}
     RESULTS['alert_counts_from_policies'] = {
         'cloud_type': {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba_cloud': 0, 'oci': 0},
         'feature':    {'remediable': 0, 'shiftable': 0},
@@ -521,12 +521,12 @@ def process_collected_data():
     # SUMMARY
     RESULTS['summary'] = {}
     RESULTS['summary']['count_of_assets'] = 0
-    RESULTS['summary']['count_of_open_alerts'] = 0
+    RESULTS['summary']['count_of_aggregated_open_alerts'] = 0
+    RESULTS['summary']['count_of_compliance_standards_with_alerts_from_policies'] = 0
+    RESULTS['summary']['count_of_compliance_standards_with_alerts_from_alerts']   = 0
     RESULTS['summary']['count_of_policies_with_alerts_from_policies']             = 0
     RESULTS['summary']['count_of_policies_with_alerts_from_policies_by_cloud']    = {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba_cloud': 0, 'oci': 0}
     RESULTS['summary']['count_of_policies_with_alerts_from_alerts']               = 0
-    RESULTS['summary']['count_of_compliance_standards_with_alerts_from_policies'] = 0
-    RESULTS['summary']['count_of_compliance_standards_with_alerts_from_alerts']   = 0
     process_summary()
 
 ##########################################################################################
@@ -681,8 +681,8 @@ def process_alerts(alerts):
 def process_summary():
     RESULTS['summary']['count_of_assets']                                         = DATA['ASSETS']['summary']['totalResources']
     if CONFIG['SUPPORT_API_MODE']:
-        RESULTS['summary']['count_of_open_alerts']                                = RESULTS['alerts_aggregated_by']['status']['open']
         RESULTS['summary']['count_of_policies_with_alerts_from_policies']         = len(RESULTS['alerts_aggregated_by']['policy'])
+        RESULTS['summary']['count_of_aggregated_open_alerts']                     = RESULTS['alerts_aggregated_by']['status']['open']
     else:
         RESULTS['summary']['count_of_policies_with_alerts_from_policies']         = sum(v['alertCount'] != 0 for k,v in RESULTS['policies'].items())
     RESULTS['summary']['count_of_compliance_standards_with_alerts_from_policies'] = sum(v != {'high': 0, 'medium': 0, 'low': 0} for k,v in RESULTS['compliance_standards_from_policies'].items())
@@ -872,7 +872,7 @@ def output_alerts_summary(panda_writer):
             ('',''),
             ('Number of Policies with Alerts',              RESULTS['summary']['count_of_policies_with_alerts_from_alerts']),
             ('',''),
-            ('Number of Alerts',                            RESULTS['summary']['count_of_open_alerts']),
+            ('Number of Alerts',                            RESULTS['summary']['count_of_aggregated_open_alerts']),
             ('',''),
             ('Anomaly Alerts',                              RESULTS['alert_counts_from_alerts']['type']['anomaly']),
             ('Audit Alerts',                                RESULTS['alert_counts_from_alerts']['type']['audit_event']),
