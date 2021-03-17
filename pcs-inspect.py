@@ -516,7 +516,8 @@ def process_collected_data():
         'resolved_by_policy':   {'disabled': 0, 'deleted': 0},
         'resolved_by_resource': {'deleted': 0, 'updated': 0},
     }
-    RESULTS['deleted_policies_from_alerts'] = {}
+    RESULTS['deleted_policies_from_alerts']  = {}
+    RESULTS['disabled_policies_from_alerts'] = {}
     process_alerts(DATA['ALERTS'])
     # SUMMARY
     RESULTS['summary'] = {}
@@ -661,8 +662,8 @@ def process_alerts(alerts):
             RESULTS['policy_counts_from_alerts']['severity'][RESULTS['policies'][this_policy_id]['policySeverity']] += 1
             RESULTS['policy_counts_from_alerts']['type'][RESULTS['policies'][this_policy_id]['policyType']] += 1
             if RESULTS['policies'][this_policy_id]['policyEnabled'] == False:
-                RESULTS['policies_disabled'].setdefault(policy_name, 0)
-                RESULTS['policies_disabled'][policy_name] += 1
+                RESULTS['disabled_policies_from_alerts'].setdefault(policy_name, 0)
+                RESULTS['disabled_policies_from_alerts'][policy_name] += 1
                 RESULTS['alert_counts_from_alerts']['policy']['disabled'] += 1
             # Compliance Standard data from the related Policy.
             for compliance_standard_name in RESULTS['policies'][this_policy_id]['complianceStandards']:
