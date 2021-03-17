@@ -538,7 +538,7 @@ def process_collected_data():
 def process_aggregated_alerts(alerts):
     alerts_by = {
         'policy':   {},
-        'type':     {'anomaly': 0, 'audit_event': 0, 'config': 0, 'data': 0, 'iam': 0},
+        'type':     {'anomaly': 0, 'audit_event': 0, 'config': 0, 'data': 0, 'iam': 0,'network': 0},
         'severity': {'high': 0, 'medium': 0, 'low': 0},
         'status':   {'open': 0, 'resolved': 0}
     }
@@ -685,6 +685,7 @@ def process_summary():
         RESULTS['summary']['count_of_aggregated_open_alerts']                     = RESULTS['alerts_aggregated_by']['status']['open']
     else:
         RESULTS['summary']['count_of_policies_with_alerts_from_policies']         = sum(v['alertCount'] != 0 for k,v in RESULTS['policies'].items())
+        RESULTS['summary']['count_of_open_closed_alerts']                         = len(DATA['ALERTS'])
     RESULTS['summary']['count_of_compliance_standards_with_alerts_from_policies'] = sum(v != {'high': 0, 'medium': 0, 'low': 0} for k,v in RESULTS['compliance_standards_from_policies'].items())
     RESULTS['summary']['count_of_compliance_standards_with_alerts_from_alerts']   = len(RESULTS['compliance_standards_from_alerts'])
     RESULTS['summary']['count_of_policies_with_alerts_from_alerts']               = len(RESULTS['policies_from_alerts'])
@@ -872,7 +873,7 @@ def output_alerts_summary(panda_writer):
             ('',''),
             ('Number of Policies with Alerts',              RESULTS['summary']['count_of_policies_with_alerts_from_alerts']),
             ('',''),
-            ('Number of Alerts',                            RESULTS['summary']['count_of_aggregated_open_alerts']),
+            ('Number of Alerts',                            RESULTS['summary']['count_of_open_closed_alerts']),
             ('',''),
             ('Anomaly Alerts',                              RESULTS['alert_counts_from_alerts']['type']['anomaly']),
             ('Audit Alerts',                                RESULTS['alert_counts_from_alerts']['type']['audit_event']),
