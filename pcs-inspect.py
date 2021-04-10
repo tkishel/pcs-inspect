@@ -158,9 +158,13 @@ def make_api_call(method, url, requ_data=None):
         requ = requests.Request(method, url, data=requ_data, headers=CONFIG['PRISMA_API_HEADERS'])
         prep = requ.prepare()
         sess = requests.Session()
-        # GlobalProtect generates 'ignore self signed certificate in certificate chain' errors:
-        requests.packages.urllib3.disable_warnings()
-        resp = sess.send(prep, timeout=(CONFIG['API_TIMEOUTS']), verify=False)
+        # GlobalProtect generates 'ignore self signed certificate in certificate chain' errors.
+        # Set 'REQUESTS_CA_BUNDLE' to a valid CA bundle including the 'Palo Alto Networks Inc Root CA' used by GlobalProtect.
+        # Hint: Copy the bundle provided by the certifi module (locate via 'python -m certifi') and append the 'Palo Alto Networks Inc Root CA' 
+        if 'REQUESTS_CA_BUNDLE' in os.environ:
+            resp = sess.send(prep, timeout=(CONFIG['API_TIMEOUTS']), verify="%s" % os.environ['REQUESTS_CA_BUNDLE'])
+        else:
+            resp = sess.send(prep, timeout=(CONFIG['API_TIMEOUTS']))
         if CONFIG['DEBUG_MODE']:
             output(resp.text)
         if resp.ok:
@@ -170,7 +174,10 @@ def make_api_call(method, url, requ_data=None):
             output('Error with API: Status Code: %s Details: %s' % (resp.status_code, resp.text))
             sys.exit(1)
     except RequestException as e:
-        output('Error with API: %s: %s' % (url, str(e)))
+        output()
+        output('Error with API: URL: %s: Error: %s' % (url, str(e)))
+        output()
+        output('For CERTIFICATE_VERIFY_FAILED errors with GlobalProtect, try setting REQUESTS_CA_BUNDLE to a bundle with the Palo Alto Networks Inc Root CA.')
         sys.exit(1)
 
 ####

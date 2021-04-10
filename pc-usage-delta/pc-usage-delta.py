@@ -174,10 +174,18 @@ def env_var_or_none(var_name, to_int=False):
 ##########################################################################################
 
 def make_api_call(config, method, api_url, body_data=None):
-    # GlobalProtect generates 'ignore self signed certificate in certificate chain' errors:
-    urllib3.disable_warnings()
-    http = urllib3.PoolManager(cert_reqs='CERT_NONE')
-    resp = http.request(method, api_url, body=body_data, headers=config['PRISMA_API_HEADERS'])
+    # GlobalProtect generates 'ignore self signed certificate in certificate chain' errors.
+    # Set 'SSL_CERT_FILE' to a valid CA bundle including the 'Palo Alto Networks Inc Root CA' used by GlobalProtect.
+    # Hint: Copy the bundle provided by the certifi module (locate via 'python -m certifi') and append the 'Palo Alto Networks Inc Root CA' 
+    http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED')
+    try:
+        resp = http.request(method, api_url, body=body_data, headers=config['PRISMA_API_HEADERS'])
+    except urllib3.exceptions.RequestError as e:
+        output()
+        output('Error with API: URL: %s: Error: %s' % (api_url, str(e)))
+        output()
+        output('For CERTIFICATE_VERIFY_FAILED errors with GlobalProtect, try setting SSL_CERT_FILE to a bundle with the Palo Alto Networks Inc Root CA.')
+        sys.exit()
     if resp.status == 200:
         return resp.data
     else:
