@@ -87,9 +87,16 @@ provider "aws" {
 #### LAMBDA
 
 data "archive_file" "pc_usage_delta_zip" {
-  source_file = "${path.module}/lambda_function.py"
   output_path = "/tmp/pc_usage_delta_lambda.zip"
   type        = "zip"
+  source {
+    content  = "${path.module}/lambda_function.py"
+    filename = "lambda_function.py"
+  }
+  source {
+    content  = "${path.module}/requirements.txt"
+    filename = "requirements.txt"
+  }
 }
 
 data "aws_kms_ciphertext" "pc_usage_delta_prisma_api_key" {
