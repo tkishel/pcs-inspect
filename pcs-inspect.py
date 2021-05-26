@@ -827,7 +827,7 @@ def output_alerts_by_policy(panda_writer):
     write_sheet(panda_writer, 'Open Alerts by Policy', rows)
     if not CONFIG['SUPPORT_API_MODE']:
         rows = []
-        rows.append(('Policy', 'Enabled', 'UPI', 'Severity', 'Type', 'With IAC', 'With Remediation', 'Alert Count', 'Compliance Standards'))
+        rows.append(('Policy', 'UPI', 'Alert Count', 'Enabled', 'Severity', 'Type', 'Cloud Provider', 'With IAC', 'With Remediation', 'Compliance Standards'))
         for policy_name in sorted(RESULTS['policies_from_alerts']):
             this_policy_id        = RESULTS['policies_from_alerts'][policy_name]['policyId']
             policy_upi            = RESULTS['policies'][this_policy_id]['policyUpi']
