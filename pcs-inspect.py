@@ -160,7 +160,7 @@ def make_api_call(method, url, requ_data=None):
         sess = requests.Session()
         # GlobalProtect generates 'ignore self signed certificate in certificate chain' errors.
         # Set 'REQUESTS_CA_BUNDLE' to a valid CA bundle including the 'Palo Alto Networks Inc Root CA' used by GlobalProtect.
-        # Hint: Copy the bundle provided by the certifi module (locate via 'python -m certifi') and append the 'Palo Alto Networks Inc Root CA' 
+        # Hint: Copy the bundle provided by the certifi module (locate via 'python -m certifi') and append the 'Palo Alto Networks Inc Root CA'
         if 'REQUESTS_CA_BUNDLE' in os.environ:
             resp = sess.send(prep, timeout=(CONFIG['API_TIMEOUTS']), verify="%s" % os.environ['REQUESTS_CA_BUNDLE'])
         else:
@@ -407,6 +407,36 @@ def get_integrations(output_file_name):
     result_file.write(api_response)
     result_file.close()
 
+#### WIP
+
+def get_cloud_resources(output_file_name, cloud_accounts_list=[]):
+    delete_file_if_exists(output_file_name)
+    resource_list = []
+    for cloud_account in cloud_accounts_list:
+        body_params = {
+            'filters':[
+                {'operator':'=', 'name':'includeEventForeignEntities', 'value': 'false'},
+                {'operator':'=', 'name':'asset.severity', 'value': 'all'},
+                {'operator':'=', 'name':'cloud.account',  'value': '%s' % cloud_account['name']},
+                {'operator':'=', 'name':'cloud.type',     'value': '%s' % cloud_account['deploymentType']},
+                {'operator':'=', 'name':'scan.status',    'value': 'all'}],
+            'limit': 1000,
+            'timeRange': {'type': 'to_now'}
+        }
+        if CONFIG['SUPPORT_API_MODE']:
+            body_params['customerName'] = CONFIG['CUSTOMER_NAME']
+            request_data = json.dumps(body_params)
+            # api_response = make_api_call('POST', '%s/_support/WIP' % CONFIG['PRISMA_API_ENDPOINT'], request_data)
+            api_response = []
+        else:
+            request_data = json.dumps(body_params)
+            api_response = make_api_call('POST', '%s/resource' % CONFIG['PRISMA_API_ENDPOINT'], request_data)
+        resource_list.append(api_response)
+
+    result_file = open(output_file_name, 'wb')
+    result_file.write(resource_list)
+    result_file.close()
+
 ##########################################################################################
 # Collect mode: Query the API and write the results to files.
 ##########################################################################################
@@ -523,14 +553,14 @@ def process_collected_data():
         'mode':                 {'custom': 0, 'default': 0},
         'policy':               {'disabled': 0, 'deleted': 0},
         'status_by_feature': {
-            'remediable':       {'open': 0, 'dismissed': 0, 'snoozed': 0, 'resolved': 0}, 
+            'remediable':       {'open': 0, 'dismissed': 0, 'snoozed': 0, 'resolved': 0},
         },
         'severity':             {'high': 0, 'medium': 0, 'low': 0},
         'status':               {'open': 0, 'dismissed': 0, 'snoozed': 0, 'resolved': 0},
         'severity_by_status': {
-            'open':             {'high': 0, 'medium': 0, 'low': 0}, 
+            'open':             {'high': 0, 'medium': 0, 'low': 0},
             'dismissed':        {'high': 0, 'medium': 0, 'low': 0},
-            'snoozed':          {'high': 0, 'medium': 0, 'low': 0}, 
+            'snoozed':          {'high': 0, 'medium': 0, 'low': 0},
             'resolved':         {'high': 0, 'medium': 0, 'low': 0},
         },
         'type':                 {'anomaly': 0, 'audit_event': 0, 'config': 0, 'data': 0, 'iam': 0, 'network': 0},
@@ -539,11 +569,13 @@ def process_collected_data():
     }
     RESULTS['deleted_policies_from_alerts']  = {}
     RESULTS['disabled_policies_from_alerts'] = {}
+    RESULTS['resources_from_alerts'] = {}
     process_alerts(DATA['ALERTS'])
     # SUMMARY
     RESULTS['summary'] = {}
     RESULTS['summary']['count_of_assets'] = 0
     RESULTS['summary']['count_of_aggregated_open_alerts'] = 0
+    RESULTS['summary']['count_of_resources_with_alerts_from_alerts'] = 0
     RESULTS['summary']['count_of_compliance_standards_with_alerts_from_policies'] = 0
     RESULTS['summary']['count_of_compliance_standards_with_alerts_from_alerts']   = 0
     RESULTS['summary']['count_of_policies_with_alerts_from_policies']             = 0
@@ -637,7 +669,7 @@ def process_policies(policies):
 # SUPPORT_API_MODE: Substitute aggregated Alerts (as '/_support/policy' does not return openAlertsCount).
 ##########################################################################################
 
-def process_alerts(alerts):    
+def process_alerts(alerts):
     if CONFIG['SUPPORT_API_MODE']:
         RESULTS['policy_counts_from_alerts']['severity']['high']    = RESULTS['alerts_aggregated_by']['severity']['high']
         RESULTS['policy_counts_from_alerts']['severity']['medium']  = RESULTS['alerts_aggregated_by']['severity']['medium']
@@ -667,7 +699,12 @@ def process_alerts(alerts):
                     RESULTS['alert_counts_from_alerts']['resolved_by_resource']['deleted'] += 1
                 if this_alert['reason'] == 'RESOURCE_UPDATED':
                     RESULTS['alert_counts_from_alerts']['resolved_by_resource']['updated'] += 1
+            if 'resource' in this_alert:
+                if 'rrn' in this_alert['resource']:
+                    RESULTS['resources_from_alerts'][this_alert['resource']['rrn']] = this_alert['resource']['rrn']
+            #
             # This is all of the data we can collect without a reference to a Policy.
+            #
             if not this_policy_id in RESULTS['policies']:
                 if this_alert['reason'] == 'POLICY_DELETED':
                     RESULTS['deleted_policies_from_alerts'].setdefault(this_policy_id, 0)
@@ -706,6 +743,7 @@ def process_summary():
         RESULTS['summary']['count_of_policies_with_alerts_from_policies']         = len(RESULTS['alerts_aggregated_by']['policy'])
         RESULTS['summary']['count_of_aggregated_open_alerts']                     = RESULTS['alerts_aggregated_by']['status']['open']
     else:
+        RESULTS['summary']['count_of_resources_with_alerts_from_alerts']          = len(RESULTS['resources_from_alerts'].keys())
         RESULTS['summary']['count_of_policies_with_alerts_from_policies']         = sum(v['alertCount'] != 0 for k,v in RESULTS['policies'].items())
         RESULTS['summary']['count_of_open_closed_alerts']                         = len(DATA['ALERTS'])
     RESULTS['summary']['count_of_compliance_standards_with_alerts_from_policies'] = sum(v != {'high': 0, 'medium': 0, 'low': 0} for k,v in RESULTS['compliance_standards_from_policies'].items())
@@ -831,7 +869,7 @@ def output_alerts_by_policy(panda_writer):
         for policy_name in sorted(RESULTS['policies_from_alerts']):
             this_policy_id        = RESULTS['policies_from_alerts'][policy_name]['policyId']
             policy_upi            = RESULTS['policies'][this_policy_id]['policyUpi']
-            policy_alert_count    = RESULTS['policies_from_alerts'][policy_name]['alertCount'] # Not RESULTS['policies'][this_policy_id]['openAlertsCount'] 
+            policy_alert_count    = RESULTS['policies_from_alerts'][policy_name]['alertCount'] # Not RESULTS['policies'][this_policy_id]['openAlertsCount']
             policy_enabled        = RESULTS['policies'][this_policy_id]['policyEnabled']
             policy_severity       = RESULTS['policies'][this_policy_id]['policySeverity']
             policy_type           = RESULTS['policies'][this_policy_id]['policyType']
@@ -891,6 +929,8 @@ def output_alerts_summary(panda_writer):
     write_sheet(panda_writer, 'Open Alerts Summary', rows)
     if not CONFIG['SUPPORT_API_MODE']:
         rows = [
+            ('Number of Assets with Alerts',                RESULTS['summary']['count_of_resources_with_alerts_from_alerts']),
+            ('',''),
             ('Number of Compliance Standards with Alerts',  RESULTS['summary']['count_of_compliance_standards_with_alerts_from_alerts']),
             ('',''),
             ('Number of Policies with Alerts',              RESULTS['summary']['count_of_policies_with_alerts_from_alerts']),
