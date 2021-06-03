@@ -49,6 +49,10 @@ chmod +x pcs-inspect.py
   --secret_key "ssss1111ssss1111ssss1111="
 ```
 
+### Containerized Usage
+
+See: [PCEE_PYTHON_DOCKERFILE_PCS_INSPECT] (https://github.com/Kyle9021/PCEE_PYTHON_DOCKERFILE_PCS_INSPECT)
+
 ### Troubleshooting
 
 In general, specify `-d` to enable debugging.
