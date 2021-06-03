@@ -627,7 +627,7 @@ def process_policies(policies):
         if 'policyUpi' in this_policy:
             RESULTS['policies'][this_policy_id]['policyUpi'] = this_policy['policyUpi']
         else:
-            RESULTS['policies'][this_policy_id]['policyUpi'] = 'CUSTOM'
+            RESULTS['policies'][this_policy_id]['policyUpi'] = 'UNKNOWN'
         # Alerts
         if CONFIG['SUPPORT_API_MODE']:
             if this_policy['name'] in RESULTS['alerts_aggregated_by']['policy']:
