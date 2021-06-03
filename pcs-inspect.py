@@ -772,6 +772,14 @@ def output_collected_data():
 
 ##
 
+def upi_group(policy_upi = ''):
+    upi_search = re.search('^(.*?)\-(\d+)$', policy_upi)
+    if upi_search:
+        return upi_search.group(1)
+    return policy_upi
+
+##
+
 def output_utilization(panda_writer):
     output('Saving Utilization Worksheet')
     output()
@@ -848,11 +856,12 @@ def output_alerts_by_policy(panda_writer):
     output('Saving Alerts by Policy Worksheet(s)')
     output()
     rows = []
-    rows.append(('Policy', 'UPI', 'Alert Count', 'Enabled', 'Severity', 'Type', 'Cloud Type', 'With IAC', 'With Remediation', 'Compliance Standards'))
+    rows.append(('Policy', 'UPI', 'UPI Group', 'Alert Count', 'Enabled', 'Severity', 'Type', 'Cloud Type', 'With IAC', 'With Remediation', 'Compliance Standards'))
     # Consider replacing sorted(RESULTS['policies_by_name']) with sorted(RESULTS['policies'], key=lambda x: (RESULTS['policies'][x]['name'])
     for policy_name in sorted(RESULTS['policies_by_name']):
         this_policy_id        = RESULTS['policies_by_name'][policy_name]['policyId']
         policy_upi            = RESULTS['policies'][this_policy_id]['policyUpi']
+        policy_upi_group      = upi_group(policy_upi)
         policy_alert_count    = RESULTS['policies'][this_policy_id]['alertCount']
         policy_enabled        = RESULTS['policies'][this_policy_id]['policyEnabled']
         policy_severity       = RESULTS['policies'][this_policy_id]['policySeverity']
@@ -861,14 +870,15 @@ def output_alerts_by_policy(panda_writer):
         policy_is_shiftable   = RESULTS['policies'][this_policy_id]['policyShiftable']
         policy_is_remediable  = RESULTS['policies'][this_policy_id]['policyRemediable']
         policy_standards_list = ','.join(map(str, RESULTS['policies'][this_policy_id]['complianceStandards']))
-        rows.append((policy_name, policy_upi, policy_alert_count, policy_enabled, policy_severity, policy_type, policy_cloud_type, policy_is_remediable, policy_is_remediable, policy_standards_list))
+        rows.append((policy_name, policy_upi, policy_upi_group, policy_alert_count, policy_enabled, policy_severity, policy_type, policy_cloud_type, policy_is_remediable, policy_is_remediable, policy_standards_list))
     write_sheet(panda_writer, 'Open Alerts by Policy', rows)
     if not CONFIG['SUPPORT_API_MODE']:
         rows = []
-        rows.append(('Policy', 'UPI', 'Alert Count', 'Enabled', 'Severity', 'Type', 'Cloud Provider', 'With IAC', 'With Remediation', 'Compliance Standards'))
+        rows.append(('Policy', 'UPI', 'UPI Group', 'Alert Count', 'Enabled', 'Severity', 'Type', 'Cloud Provider', 'With IAC', 'With Remediation', 'Compliance Standards'))
         for policy_name in sorted(RESULTS['policies_from_alerts']):
             this_policy_id        = RESULTS['policies_from_alerts'][policy_name]['policyId']
             policy_upi            = RESULTS['policies'][this_policy_id]['policyUpi']
+            policy_upi_group      = upi_group(policy_upi)
             policy_alert_count    = RESULTS['policies_from_alerts'][policy_name]['alertCount'] # Not RESULTS['policies'][this_policy_id]['openAlertsCount']
             policy_enabled        = RESULTS['policies'][this_policy_id]['policyEnabled']
             policy_severity       = RESULTS['policies'][this_policy_id]['policySeverity']
@@ -877,7 +887,7 @@ def output_alerts_by_policy(panda_writer):
             policy_is_shiftable   = RESULTS['policies'][this_policy_id]['policyShiftable']
             policy_is_remediable  = RESULTS['policies'][this_policy_id]['policyRemediable']
             policy_standards_list = ','.join(map(str, RESULTS['policies'][this_policy_id]['complianceStandards']))
-            rows.append((policy_name, policy_upi, policy_alert_count, policy_enabled, policy_severity, policy_type, policy_cloud_type, policy_is_remediable, policy_is_remediable, policy_standards_list))
+            rows.append((policy_name, policy_upi, policy_upi_group, policy_alert_count, policy_enabled, policy_severity, policy_type, policy_cloud_type, policy_is_remediable, policy_is_remediable, policy_standards_list))
         rows.append((''))
         rows.append((''))
         rows.append(('Time Range: %s' % CONFIG['TIME_RANGE_LABEL'], ''))
