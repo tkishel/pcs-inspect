@@ -8,6 +8,7 @@ import pandas as pd
 import re
 import requests
 from requests.exceptions import RequestException
+from shutil import which
 import sys
 
 ##########################################################################################
@@ -498,15 +499,32 @@ def collect_data():
     output()
 
 ##########################################################################################
+# Collect mode: Pretty the input files ... using jq to avoid encoding errors.
+##########################################################################################
+
+def format_collected_data():
+    if which('jq') is None:
+        return
+    for this_result_file in CONFIG['RESULTS_FILE']:
+        this_file = CONFIG['RESULTS_FILE'][this_result_file]
+        temp_file = '%s.temp' % this_file
+        if not os.path.isfile(this_file):
+          output('Error: Query result file does not exist: %s' % this_file)
+          sys.exit(1)
+        os.system('cat %s | jq > %s' % (this_file, temp_file))
+        os.system('mv %s %s' % (temp_file, this_file))
+
+##########################################################################################
 # Process mode: Read the input files.
 ##########################################################################################
 
 def read_collected_data():
     for this_result_file in CONFIG['RESULTS_FILE']:
-        if not os.path.isfile(CONFIG['RESULTS_FILE'][this_result_file]):
-          output('Error: Query result file does not exist: %s' % CONFIG['RESULTS_FILE'][this_result_file])
+        this_file = CONFIG['RESULTS_FILE'][this_result_file]
+        if not os.path.isfile(this_file):
+          output('Error: Query result file does not exist: %s' % this_file)
           sys.exit(1)
-        with open(CONFIG['RESULTS_FILE'][this_result_file], 'r', encoding='utf8') as f:
+        with open(this_file, 'r', encoding='utf8') as f:
           DATA[this_result_file] = json.load(f)
 
 ##########################################################################################
@@ -1026,6 +1044,7 @@ if CONFIG['RUN_MODE'] in ['collect', 'auto']:
     output('Collecting Data')
     output()
     collect_data()
+    format_collected_data()
 
 if CONFIG['RUN_MODE'] == 'collect':
     output("Run '%s --customer_name %s --mode process' to process the collected data and save to a spreadsheet." % (os.path.basename(__file__), CONFIG['CUSTOMER_NAME']))
