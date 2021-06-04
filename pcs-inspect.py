@@ -513,6 +513,8 @@ def format_collected_data():
           sys.exit(1)
         os.system('cat %s | jq > %s' % (this_file, temp_file))
         os.system('mv %s %s' % (temp_file, this_file))
+        output('Formatting: %s' % this_file)
+        output()
 
 ##########################################################################################
 # Process mode: Read the input files.
@@ -1044,7 +1046,10 @@ if CONFIG['RUN_MODE'] in ['collect', 'auto']:
     output('Collecting Data')
     output()
     collect_data()
+    output('Formatting Data')
+    output()
     format_collected_data()
+    output()
 
 if CONFIG['RUN_MODE'] == 'collect':
     output("Run '%s --customer_name %s --mode process' to process the collected data and save to a spreadsheet." % (os.path.basename(__file__), CONFIG['CUSTOMER_NAME']))
