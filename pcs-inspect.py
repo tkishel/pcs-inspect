@@ -893,15 +893,15 @@ def output_alerts_by_policy(panda_writer):
         policy_alert_count    = RESULTS['policies'][this_policy_id]['alertCount']
         policy_enabled        = RESULTS['policies'][this_policy_id]['policyEnabled']
         policy_severity       = RESULTS['policies'][this_policy_id]['policySeverity'].title()
-        policy_subtypes       = ','.join(RESULTS['policies'][this_policy_id]['policySubTypes']).upper()
+        policy_subtypes       = ', '.join(RESULTS['policies'][this_policy_id]['policySubTypes']).upper()
         policy_type           = RESULTS['policies'][this_policy_id]['policyType'].title()
         policy_category       = RESULTS['policies'][this_policy_id]['policyCategory'].title()
         policy_class          = RESULTS['policies'][this_policy_id]['policyClass'].title()
         policy_cloud_type     = RESULTS['policies'][this_policy_id]['policyCloudType'].upper()
         policy_is_shiftable   = RESULTS['policies'][this_policy_id]['policyShiftable']
         policy_is_remediable  = RESULTS['policies'][this_policy_id]['policyRemediable']
-        policy_labels         = ','.join(RESULTS['policies'][this_policy_id]['policyLabels'])
-        policy_standards_list = ','.join(map(str, RESULTS['policies'][this_policy_id]['complianceStandards']))
+        policy_labels         = ', '.join(RESULTS['policies'][this_policy_id]['policyLabels'])
+        policy_standards_list = ', '.join(map(str, RESULTS['policies'][this_policy_id]['complianceStandards']))
         rows.append((policy_name, policy_upi, policy_upi_group, policy_default, policy_alert_count, policy_enabled, policy_severity, policy_type, policy_subtypes, policy_category, policy_class, policy_cloud_type, policy_is_remediable, policy_is_remediable, policy_labels, policy_standards_list))
     write_sheet(panda_writer, 'Open Alerts by Policy', rows)
     if not CONFIG['SUPPORT_API_MODE']:
@@ -916,14 +916,14 @@ def output_alerts_by_policy(panda_writer):
             policy_enabled        = RESULTS['policies'][this_policy_id]['policyEnabled']
             policy_severity       = RESULTS['policies'][this_policy_id]['policySeverity'].title()
             policy_type           = RESULTS['policies'][this_policy_id]['policyType'].title()
-            policy_subtypes       = ','.join(RESULTS['policies'][this_policy_id]['policySubTypes']).upper()
+            policy_subtypes       = ', '.join(RESULTS['policies'][this_policy_id]['policySubTypes']).upper()
             policy_category       = RESULTS['policies'][this_policy_id]['policyCategory'].title()
             policy_class          = RESULTS['policies'][this_policy_id]['policyClass'].title()
             policy_cloud_type     = RESULTS['policies'][this_policy_id]['policyCloudType'].upper()
             policy_is_shiftable   = RESULTS['policies'][this_policy_id]['policyShiftable']
             policy_is_remediable  = RESULTS['policies'][this_policy_id]['policyRemediable']
-            policy_labels         = ','.join(RESULTS['policies'][this_policy_id]['policyLabels'])
-            policy_standards_list = ','.join(map(str, RESULTS['policies'][this_policy_id]['complianceStandards']))
+            policy_labels         = ', '.join(RESULTS['policies'][this_policy_id]['policyLabels'])
+            policy_standards_list = ', '.join(map(str, RESULTS['policies'][this_policy_id]['complianceStandards']))
             rows.append((policy_name, policy_upi, policy_upi_group, policy_default, policy_alert_count, policy_enabled, policy_severity, policy_type, policy_subtypes, policy_category, policy_class, policy_cloud_type, policy_is_remediable, policy_is_remediable, policy_labels, policy_standards_list))
         rows.append((''))
         rows.append((''))
