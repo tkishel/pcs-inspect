@@ -822,7 +822,10 @@ def output_utilization(panda_writer):
         ('Users Disabled',                 sum(x.get('enabled') == False for x in DATA['USERS'])),
         ('Users Enabled',                  sum(x.get('enabled') == True for x in DATA['USERS'])),
     ]
-    write_sheet(panda_writer, 'Utilization', rows)
+    if CONFIG['SUPPORT_API_MODE']:
+        rows.append(('',''))
+        rows.append(('Data Collected using the Support API',''))
+    write_sheet(panda_writer, 'Utilization Summary', rows)
 
 ##
 
@@ -835,7 +838,7 @@ def output_alerts_by_compliance_standard(panda_writer):
         alert_count_high   = RESULTS['compliance_standards_from_policies'][compliance_standard_name]['high']
         alert_count_medium = RESULTS['compliance_standards_from_policies'][compliance_standard_name]['medium']
         alert_count_low    = RESULTS['compliance_standards_from_policies'][compliance_standard_name]['low']
-        rows.append((compliance_standard_name, alert_count_high, alert_count_medium, alert_count_low) )
+        rows.append((compliance_standard_name, alert_count_high, alert_count_medium, alert_count_low))
     write_sheet(panda_writer, 'Open Alerts by Standard', rows)
     if not CONFIG['SUPPORT_API_MODE']:
         rows = []

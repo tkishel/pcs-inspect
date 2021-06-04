@@ -22,7 +22,7 @@ and outputs results to an Excel spreadsheet, including worksheets for:
 * If necessary, install the required libraries
 * Identify the `--customer_name` parameter via Support -> Customers in the same stack as the Tenant
 * Create or select an Access Key with a Role higher than "Build and Deploy Security" in the Tenant
-* Execute the `pcs-inspect.py` script to collect and process * the data
+* Execute the `pcs-inspect.py` script to collect and process the data *
 * Import the results into Google Sheets, and/or Google Slides (for example: [PCS Inspect Report](https://docs.google.com/presentation/d/10x_PGAu0ZPUGZMc4Tfevf9gpXvhIUOwGrBuRBkI6Jjc/edit?usp=sharing))
 * Profit!
 
@@ -49,6 +49,30 @@ chmod +x pcs-inspect.py
   --secret_key "ssss1111ssss1111ssss1111="
 ```
 
+### Output (Worksheets in the Spreadsheet)
+
+`Utilization Summary` includes a summary of Assets, Accounts, Account Groups, Alert Rules, Integrations, Policies, and Users. 
+Its data is collected from each of the associated endpoints.
+
+`Open Alerts by Standard` lists Compliance Standards, and the count of High, Medium, and Low Severity Alerts for each Standard.
+Its data is collected from the `policy` endpoint.
+
+`Open Alerts by Policy` lists Policies with details including Open Alert Count.
+Its data is collected from the `policy` endpoint.
+
+`Open Alerts Summary` includes a summary of the `Open Alerts by Standard` and `Open Alerts by Policy` worksheets.
+Its data is collected from the `policy` endpoint.
+
+`Open and Closed Alerts by Standard` lists Compliance Standards, and the count of High, Medium, and Low Severity Alerts for each Standard.
+Its data is collected from the `alerts` endpoint, is scoped to a time range, but is not collected or output when using Support API mode.
+
+`Open and Closed Alerts by Policy` lists Policies with details including Open and Closed Alert Count.
+Its data is collected from the `alerts` endpoint, is scoped to a time range, but is not collected or output when using Support API mode.
+
+`Open and Closed Alerts Summary` includes a summary of the `Open and Closed Alerts by Standard` and `Open and Closed Alerts by Policy` worksheets.
+Its data is collected from the `alerts` endpoint, is scoped to a time range, but is not collected or output when using Support API mode.
+
+
 ### Containerized Usage
 
 See: [PCEE_PYTHON_DOCKERFILE_PCS_INSPECT] (https://github.com/Kyle9021/PCEE_PYTHON_DOCKERFILE_PCS_INSPECT)
@@ -70,4 +94,11 @@ If you receive an error when the script queries an API endpoint:
 * Do not use a Support User Access Key unless specifying `--support_api`
 * Validate that the Support User has "LIGHT AGENT" permissions when specifying `--support_api`
 
-Note that details for some server-side query errors not are returned by the API!
+Note that details for some server-side query errors not are returned by the API.
+
+If the report does not contain the numbers you were expecting:
+
+* If you are using Support API mode, remember that the script is limited to the data that the APIs return.
+* Open the `.json` files created by the collect/query steps, and review the data that the APIs return.
+* Open the script review the `get_` functions for comments, and to identify the API endpoints used to return data.
+* Edit the script and add `print()` statements where appropriate.
