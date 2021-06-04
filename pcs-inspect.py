@@ -640,10 +640,14 @@ def process_policies(policies):
         RESULTS['policies'][this_policy_id]['policyEnabled']       = this_policy['enabled']
         RESULTS['policies'][this_policy_id]['policySeverity']      = this_policy['severity']
         RESULTS['policies'][this_policy_id]['policyType']          = this_policy['policyType']
+        RESULTS['policies'][this_policy_id]['policySubTypes']      = this_policy['policySubTypes']
+        RESULTS['policies'][this_policy_id]['policyCategory']      = this_policy['policyCategory']
+        RESULTS['policies'][this_policy_id]['policyClass']         = this_policy['policyClass']
         RESULTS['policies'][this_policy_id]['policyCloudType']     = this_policy['cloudType'].lower()
         RESULTS['policies'][this_policy_id]['policyShiftable']     = 'build' in this_policy['policySubTypes']
         RESULTS['policies'][this_policy_id]['policyRemediable']    = this_policy['remediable']
         RESULTS['policies'][this_policy_id]['policySystemDefault'] = this_policy['systemDefault']
+        RESULTS['policies'][this_policy_id]['policyLabels']        = this_policy['labels']
         if 'policyUpi' in this_policy:
             RESULTS['policies'][this_policy_id]['policyUpi'] = this_policy['policyUpi']
         else:
@@ -879,38 +883,48 @@ def output_alerts_by_policy(panda_writer):
     output('Saving Alerts by Policy Worksheet(s)')
     output()
     rows = []
-    rows.append(('Policy', 'UPI', 'UPI Group', 'Alert Count', 'Enabled', 'Severity', 'Type', 'Cloud Type', 'With IAC', 'With Remediation', 'Compliance Standards'))
+    rows.append(('Policy', 'UPI', 'UPI Group', 'Default', 'Alert Count', 'Enabled', 'Severity', 'Type', 'SubTypes', 'Category', 'Class', 'Cloud Provider', 'With IAC', 'With Remediation', 'Labels', 'Compliance Standards'))
     # Consider replacing sorted(RESULTS['policies_by_name']) with sorted(RESULTS['policies'], key=lambda x: (RESULTS['policies'][x]['name'])
     for policy_name in sorted(RESULTS['policies_by_name']):
         this_policy_id        = RESULTS['policies_by_name'][policy_name]['policyId']
         policy_upi            = RESULTS['policies'][this_policy_id]['policyUpi']
         policy_upi_group      = upi_group(policy_upi)
+        policy_default        = RESULTS['policies'][this_policy_id]['policySystemDefault']
         policy_alert_count    = RESULTS['policies'][this_policy_id]['alertCount']
         policy_enabled        = RESULTS['policies'][this_policy_id]['policyEnabled']
-        policy_severity       = RESULTS['policies'][this_policy_id]['policySeverity']
-        policy_type           = RESULTS['policies'][this_policy_id]['policyType']
-        policy_cloud_type     = RESULTS['policies'][this_policy_id]['policyCloudType']
+        policy_severity       = RESULTS['policies'][this_policy_id]['policySeverity'].title()
+        policy_subtypes       = ','.join(RESULTS['policies'][this_policy_id]['policySubTypes']).upper()
+        policy_type           = RESULTS['policies'][this_policy_id]['policyType'].title()
+        policy_category       = RESULTS['policies'][this_policy_id]['policyCategory'].title()
+        policy_class          = RESULTS['policies'][this_policy_id]['policyClass'].title()
+        policy_cloud_type     = RESULTS['policies'][this_policy_id]['policyCloudType'].upper()
         policy_is_shiftable   = RESULTS['policies'][this_policy_id]['policyShiftable']
         policy_is_remediable  = RESULTS['policies'][this_policy_id]['policyRemediable']
+        policy_labels         = ','.join(RESULTS['policies'][this_policy_id]['policyLabels'])
         policy_standards_list = ','.join(map(str, RESULTS['policies'][this_policy_id]['complianceStandards']))
-        rows.append((policy_name, policy_upi, policy_upi_group, policy_alert_count, policy_enabled, policy_severity, policy_type, policy_cloud_type, policy_is_remediable, policy_is_remediable, policy_standards_list))
+        rows.append((policy_name, policy_upi, policy_upi_group, policy_default, policy_alert_count, policy_enabled, policy_severity, policy_type, policy_subtypes, policy_category, policy_class, policy_cloud_type, policy_is_remediable, policy_is_remediable, policy_labels, policy_standards_list))
     write_sheet(panda_writer, 'Open Alerts by Policy', rows)
     if not CONFIG['SUPPORT_API_MODE']:
         rows = []
-        rows.append(('Policy', 'UPI', 'UPI Group', 'Alert Count', 'Enabled', 'Severity', 'Type', 'Cloud Provider', 'With IAC', 'With Remediation', 'Compliance Standards'))
+        rows.append(('Policy', 'UPI', 'UPI Group', 'Default', 'Alert Count', 'Enabled', 'Severity', 'Type', 'SubTypes', 'Category', 'Class', 'Cloud Provider', 'With IAC', 'With Remediation', 'Labels', 'Compliance Standards'))
         for policy_name in sorted(RESULTS['policies_from_alerts']):
             this_policy_id        = RESULTS['policies_from_alerts'][policy_name]['policyId']
             policy_upi            = RESULTS['policies'][this_policy_id]['policyUpi']
             policy_upi_group      = upi_group(policy_upi)
+            policy_default        = RESULTS['policies'][this_policy_id]['policySystemDefault']
             policy_alert_count    = RESULTS['policies_from_alerts'][policy_name]['alertCount'] # Not RESULTS['policies'][this_policy_id]['openAlertsCount']
             policy_enabled        = RESULTS['policies'][this_policy_id]['policyEnabled']
-            policy_severity       = RESULTS['policies'][this_policy_id]['policySeverity']
-            policy_type           = RESULTS['policies'][this_policy_id]['policyType']
-            policy_cloud_type     = RESULTS['policies'][this_policy_id]['policyCloudType']
+            policy_severity       = RESULTS['policies'][this_policy_id]['policySeverity'].title()
+            policy_type           = RESULTS['policies'][this_policy_id]['policyType'].title()
+            policy_subtypes       = ','.join(RESULTS['policies'][this_policy_id]['policySubTypes']).upper()
+            policy_category       = RESULTS['policies'][this_policy_id]['policyCategory'].title()
+            policy_class          = RESULTS['policies'][this_policy_id]['policyClass'].title()
+            policy_cloud_type     = RESULTS['policies'][this_policy_id]['policyCloudType'].upper()
             policy_is_shiftable   = RESULTS['policies'][this_policy_id]['policyShiftable']
             policy_is_remediable  = RESULTS['policies'][this_policy_id]['policyRemediable']
+            policy_labels         = ','.join(RESULTS['policies'][this_policy_id]['policyLabels'])
             policy_standards_list = ','.join(map(str, RESULTS['policies'][this_policy_id]['complianceStandards']))
-            rows.append((policy_name, policy_upi, policy_upi_group, policy_alert_count, policy_enabled, policy_severity, policy_type, policy_cloud_type, policy_is_remediable, policy_is_remediable, policy_standards_list))
+            rows.append((policy_name, policy_upi, policy_upi_group, policy_default, policy_alert_count, policy_enabled, policy_severity, policy_type, policy_subtypes, policy_category, policy_class, policy_cloud_type, policy_is_remediable, policy_is_remediable, policy_labels, policy_standards_list))
         rows.append((''))
         rows.append((''))
         rows.append(('Time Range: %s' % CONFIG['TIME_RANGE_LABEL'], ''))
