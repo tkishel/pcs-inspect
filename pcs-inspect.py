@@ -730,12 +730,13 @@ def process_alerts(alerts):
             # This is all of the data we can collect without a reference to a Policy.
             #
             if not this_policy_id in RESULTS['policies']:
-                if this_alert['reason'] == 'POLICY_DELETED':
-                    RESULTS['deleted_policies_from_alerts'].setdefault(this_policy_id, 0)
-                    RESULTS['deleted_policies_from_alerts'][this_policy_id] += 1
-                    RESULTS['alert_counts_from_alerts']['resolved_by_policy']['deleted'] += 1
+                if 'reason' in this_alert:
+                    if this_alert['reason'] == 'POLICY_DELETED':
+                        RESULTS['deleted_policies_from_alerts'].setdefault(this_policy_id, 0)
+                        RESULTS['deleted_policies_from_alerts'][this_policy_id] += 1
+                        RESULTS['alert_counts_from_alerts']['resolved_by_policy']['deleted'] += 1
                 if CONFIG['DEBUG_MODE']:
-                    output('Skipping Alert: Related Policy Deleted: Policy ID: %s' % this_policy_id)
+                    output('Skipping Alert: Related Policy Not Found: Policy ID: %s' % this_policy_id)
                 continue
             # Policy data from the related Policy.
             policy_name = RESULTS['policies'][this_policy_id]['policyName']
