@@ -29,6 +29,7 @@ export API3_SECRET_KEY=
 ```bash
 tkishel  ~ | Code | pcs-inspect | pcs-where-is  ./pcs-where-is.py example
 example found on APP2 as Example Customer Tenant
+	Customer ID:   111
 	Serial Number: 123
 	Tenant ID:     456
 	Prisma ID:     789
@@ -37,6 +38,7 @@ example found on APP2 as Example Customer Tenant
 	Active:        True
 
 example found on APP3 as Another Example Customer Tenant
+	Customer ID:   111
 	Serial Number: 234
 	Tenant ID:     567
 	Prisma ID:     890
