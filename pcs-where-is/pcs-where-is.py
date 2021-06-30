@@ -44,20 +44,23 @@ def configure(args):
     config = {}
     config['CA_BUNDLE'] = args.ca_bundle
     config['CUSTOMER_NAME'] = args.customer_name
-    config['API'] = {
-        'url':        'https://api.prismacloud.io',
-        'access_key': os.environ.get('API_ACCESS_KEY', None),
-        'secret_key': os.environ.get('API_SECRET_KEY', None)
-    }
-    config['API2'] = {
-        'url':        'https://api2.prismacloud.io',
-        'access_key': os.environ.get('API2_ACCESS_KEY', None),
-        'secret_key': os.environ.get('API2_SECRET_KEY', None)
-    }
-    config['API3'] = {
-        'url':        'https://api3.prismacloud.io',
-        'access_key': os.environ.get('API3_ACCESS_KEY', None),
-        'secret_key': os.environ.get('API3_SECRET_KEY', None)
+    config['STACKS'] = {
+        'API': {
+            'url':        'https://api.prismacloud.io',
+            'access_key': os.environ.get('API_ACCESS_KEY', None),
+            'secret_key': os.environ.get('API_SECRET_KEY', None)
+        },
+        'API2': {
+            'url':        'https://api2.prismacloud.io',
+            'access_key': os.environ.get('API2_ACCESS_KEY', None),
+            'secret_key': os.environ.get('API2_SECRET_KEY', None)
+        },
+        'API3': {
+            'url':        'https://api3.prismacloud.io',
+            'access_key': os.environ.get('API3_ACCESS_KEY', None),
+            'secret_key': os.environ.get('API3_SECRET_KEY', None)
+        }
+        # Add dictionaries for additional stacks here.
     }
     return config
 
@@ -136,20 +139,14 @@ CONFIG = configure(args)
 
 found = 0
 
-token     = login(CONFIG['API']['url'], CONFIG['API']['access_key'], CONFIG['API']['secret_key'], CONFIG['CA_BUNDLE'])
-customers = execute('GET', '%s/_support/customer' % CONFIG['API']['url'], token, CONFIG['CA_BUNDLE'])
-found    += find_customer('APP', customers, CONFIG['CUSTOMER_NAME'])
-
-token     = login(CONFIG['API2']['url'], CONFIG['API2']['access_key'], CONFIG['API2']['secret_key'], CONFIG['CA_BUNDLE'])
-customers = execute('GET', '%s/_support/customer' % CONFIG['API2']['url'], token, CONFIG['CA_BUNDLE'])
-found    += find_customer('APP2', customers, CONFIG['CUSTOMER_NAME'])
-
-token     = login(CONFIG['API3']['url'], CONFIG['API3']['access_key'], CONFIG['API3']['secret_key'], CONFIG['CA_BUNDLE'])
-customers = execute('GET', '%s/_support/customer' % CONFIG['API3']['url'], token, CONFIG['CA_BUNDLE'])
-found    += find_customer('APP3', customers, CONFIG['CUSTOMER_NAME'])
+for stack in CONFIG['STACKS']:
+    if CONFIG['STACKS'][stack]['access_key']:
+        token     = login(CONFIG['STACKS'][stack]['url'], CONFIG['STACKS'][stack]['access_key'], CONFIG['STACKS'][stack]['secret_key'], CONFIG['CA_BUNDLE'])
+        customers = execute('GET', '%s/_support/customer' % CONFIG['STACKS'][stack]['url'], token, CONFIG['CA_BUNDLE'])
+        found    += find_customer(stack, customers, CONFIG['CUSTOMER_NAME'])
 
 if found == 0:
-    output('%s not found on APP, APP2 or APP3' % CONFIG['CUSTOMER_NAME'])
+    output('%s not found on any configured stack' % CONFIG['CUSTOMER_NAME'])
 
 ##########################################################################################
 # TODO:
