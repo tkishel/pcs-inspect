@@ -114,6 +114,7 @@ def find_customer(stack, customers, customer_name):
             output('%s found on %s as %s' % (customer_name, stack, customer['customerName']))
             if DEBUG_MODE:
                 output(json.dumps(customer, indent=4))
+            output('\tCustomer ID:   %s' % customer['customerId'])
             if 'marketplaceData' in customer['licenseDetails'] and customer['licenseDetails']['marketplaceData']:
                 if 'serialNumber' in customer['licenseDetails']['marketplaceData']:
                     output('\tSerial Number: %s' % customer['licenseDetails']['marketplaceData']['serialNumber'])
