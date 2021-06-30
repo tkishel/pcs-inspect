@@ -2,7 +2,7 @@
 
 ## Description
 
-The `pc-usage-delta.py` script queries the Prisma Cloud API for License/Usage data,
+The `pcs-usage-delta.py` script queries the Prisma Cloud API for License/Usage data,
 saving the data to a historical file, calculating the mean of the historical data,
 and comparing that mean to the current usage. 
 If the current usage exceeds the mean usage by a (configurable) percentage,
@@ -14,22 +14,22 @@ or the number of resources/workloads changes unexpectedly.
 
 ### Usage via Cron
 
-* Download the `pc-usage-delta.py` script.
-* Customize the `notify` function in the `pc-usage-delta.py` script to meet your notification requirements.
-* Execute `pc-usage-delta.py` in the context of a cron job.
+* Download the `pcs-usage-delta.py` script.
+* Customize the `notify` function in the `pcs-usage-delta.py` script to meet your notification requirements.
+* Execute `pcs-usage-delta.py` in the context of a cron job.
 * Profit!
 
-Use `./pc-usage-delta.py -h` for a complete list of parameters.
+Use `./pcs-usage-delta.py -h` for a complete list of parameters.
 
 Note that this script requires a Prisma Cloud Access Key with `ACCOUNT GROUP READ ONLY` privileges configured for all accounts, or `SYSTEM ADMIN` privileges.
 
 #### Example
 
 ```
-vi pc-usage-delta.py
-chmod +x pc-usage-delta.py
+vi pcs-usage-delta.py
+chmod +x pcs-usage-delta.py
 
-./pc-usage-delta.py -u "https://api.prismacloud.io" -a "aaaaaaaa-1111-aaaa-1111-aaaaaaaa1111" -s "ssss1111ssss1111ssss1111="
+./pcs-usage-delta.py -u "https://api.prismacloud.io" -a "aaaaaaaa-1111-aaaa-1111-aaaaaaaa1111" -s "ssss1111ssss1111ssss1111="
 
 Generating Prisma Cloud API Token
 Querying Cloud Accounts
@@ -49,20 +49,20 @@ NOTIFY: This notification is triggered by a delta greater than 10 percent, measu
 
 ### Usage via AWS Lamdba
 
-* Download the `pc-usage-delta` directory.
-* Customize the `notify` function in the `pc-usage-delta.py` script to meet your notification requirements.
+* Download the `pcs-usage-delta` directory.
+* Customize the `notify` function in the `pcs-usage-delta.py` script to meet your notification requirements.
 * Create a `terraform/terraform.tfvars` file and populate it with the variables defined in `terraform/main.tf`.
 * Deploy with Terraform.
 * Profit!
 
 Parameters are passed as environment variables.
 
-See the `lambda_configure` function in `pc-usage-delta.py` for a complete list of variables.
+See the `lambda_configure` function in `pcs-usage-delta.py` for a complete list of variables.
 
 #### Example
 
 ```
-vi pc-usage-delta.py
+vi pcs-usage-delta.py
 
 cd terraform
 

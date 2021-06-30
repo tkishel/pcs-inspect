@@ -37,15 +37,15 @@ def notify(percentage_change, current_usage_count, resource_count_mean, resource
 
 def configure_defaults():
     result = {}
-    result['HISTORICAL_DATA_FILE']        = '~/pc-usage-history.csv'
+    result['HISTORICAL_DATA_FILE']        = '~/pcs-usage-history.csv'
     result['HISTORICAL_DATA_TO_RETAIN']   = 30
     result['PERCENT_CHANGE_TRIGGER']      = 10
     result['TIME_RANGE_AMOUNT']           = 1
     result['TIME_RANGE_UNIT']             = 'month'
-    result['LAMBDA_HISTORICAL_DATA_FILE'] = '/tmp/pc-usage-history.csv'
-    result['LAMBDA_S3_BUCKET']            = 'pc-usage-delta'
-    result['LAMBDA_S3_OBJECT']            = 'pc-usage-history.csv'
-    result['LAMBDA_KMS_KEY_ID']           = 'alias/pc_usage_delta_kms_key'
+    result['LAMBDA_HISTORICAL_DATA_FILE'] = '/tmp/pcs-usage-history.csv'
+    result['LAMBDA_S3_BUCKET']            = 'pcs-usage-delta'
+    result['LAMBDA_S3_OBJECT']            = 'pcs-usage-history.csv'
+    result['LAMBDA_KMS_KEY_ID']           = 'alias/pcs_usage_delta_kms_key'
     return result
 
 def command_line_configure():
@@ -304,14 +304,14 @@ def output(data=''):
 # Alternatives: data['total'] or data['stats']['stats']['total'] or data['items'][n]['resourceTypeCount']['total']
 
 def count_licensable_usage(usage_data):
-    pc_usage = 0
+    pcs_usage = 0
     pcs_resources = 0
     pcc_workloads = 0
     pcc_workload_keys = ['host', 'container', 'serverless', 'waas']
     if not 'stats' in usage_data:
-        return pc_usage
+        return pcs_usage
     if not 'stats' in usage_data['stats']:
-        return pc_usage
+        return pcs_usage
     for k in usage_data['stats']['stats'].keys():
         if k == 'total':
             continue
@@ -319,8 +319,8 @@ def count_licensable_usage(usage_data):
             pcc_workloads += usage_data['stats']['stats'][k]
         else:
             pcs_resources += usage_data['stats']['stats'][k]
-    pc_usage = pcs_resources + pcc_workloads
-    return pc_usage
+    pcs_usage = pcs_resources + pcc_workloads
+    return pcs_usage
 
 ####
 

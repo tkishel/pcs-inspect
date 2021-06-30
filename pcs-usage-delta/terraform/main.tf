@@ -28,7 +28,7 @@ variable "prisma_secret_key" {
 #### OPTIONAL VARIABLES/PARAMETERS
 
 # Define in terraform.tfvars.
-# See also configure_defaults in pc-usage-delta.py for defaults.
+# See also configure_defaults in pcs-usage-delta.py for defaults.
 
 variable "debug_mode" {
   default     = "false"
@@ -49,13 +49,13 @@ variable "historical_data_to_retain" {
 }
 
 variable "lambda_s3_bucket" {
-  default     = "pc-usage-delta"
+  default     = "pcs-usage-delta"
   type        = string
   description = "(Optional) Bucket to save samples"
 }
 
 variable "lambda_s3_object" {
-  default     = "pc-usage-history.csv"
+  default     = "pcs-usage-history.csv"
   type        = string
   description = "(Optional) Bucket object to save samples"
 }
@@ -86,8 +86,8 @@ provider "aws" {
 
 #### LAMBDA
 
-data "archive_file" "pc_usage_delta_zip" {
-  output_path = "/tmp/pc_usage_delta_lambda.zip"
+data "archive_file" "pcs_usage_delta_zip" {
+  output_path = "/tmp/pcs_usage_delta_lambda.zip"
   type        = "zip"
   source {
     content  = "${path.module}/lambda_function.py"
@@ -99,8 +99,8 @@ data "archive_file" "pc_usage_delta_zip" {
   }
 }
 
-data "aws_kms_ciphertext" "pc_usage_delta_prisma_api_key" {
-  key_id    = aws_kms_key.pc_usage_delta_kms_key.key_id
+data "aws_kms_ciphertext" "pcs_usage_delta_prisma_api_key" {
+  key_id    = aws_kms_key.pcs_usage_delta_kms_key.key_id
   plaintext = <<EOF
 {
   "PRISMA_ACCESS_KEY": "${var.prisma_access_key}",
@@ -109,12 +109,12 @@ data "aws_kms_ciphertext" "pc_usage_delta_prisma_api_key" {
 EOF
 }
 
-resource "aws_lambda_function" "pc_usage_delta" {
+resource "aws_lambda_function" "pcs_usage_delta" {
   description                    = "This function samples (licensable) resource (and workload) counts."
   environment {
     variables = {
       PRISMA_API_ENDPOINT       = var.prisma_api_endpoint,
-      PRISMA_API_KEY            = data.aws_kms_ciphertext.pc_usage_delta_prisma_api_key.ciphertext_blob,
+      PRISMA_API_KEY            = data.aws_kms_ciphertext.pcs_usage_delta_prisma_api_key.ciphertext_blob,
       DEBUG_MODE                = var.debug_mode,
       CLOUD_ACCOUNT_ID          = var.cloud_account_id,
       HISTORICAL_DATA_TO_RETAIN = var.historical_data_to_retain,
@@ -125,38 +125,38 @@ resource "aws_lambda_function" "pc_usage_delta" {
       TIME_RANGE_UNIT           = var.time_range_unit
     }
   }
-  filename                       = "/tmp/pc_usage_delta_lambda.zip"
-  function_name                  = "pc_usage_delta"
+  filename                       = "/tmp/pcs_usage_delta_lambda.zip"
+  function_name                  = "pcs_usage_delta"
   handler                        = "lambda_function.lambda_handler"
-  kms_key_arn                    = aws_kms_key.pc_usage_delta_kms_key.arn
+  kms_key_arn                    = aws_kms_key.pcs_usage_delta_kms_key.arn
   memory_size                    = 128
   package_type                   = "Zip"
   reserved_concurrent_executions = 1
-  role                           = aws_iam_role.pc_usage_delta_role.arn
+  role                           = aws_iam_role.pcs_usage_delta_role.arn
   runtime                        = "python3.8"
-  source_code_hash               = data.archive_file.pc_usage_delta_zip.output_base64sha256
+  source_code_hash               = data.archive_file.pcs_usage_delta_zip.output_base64sha256
   tags                           = { storestatus = "dnd" }
   timeout = 59
 }
 
-resource "aws_lambda_permission" "cloudwatch_call_pc_usage_delta" {
+resource "aws_lambda_permission" "cloudwatch_call_pcs_usage_delta" {
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.pc_usage_delta.function_name
+  function_name = aws_lambda_function.pcs_usage_delta.function_name
   principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.pc_usage_delta.arn
+  source_arn    = aws_cloudwatch_event_rule.pcs_usage_delta.arn
   statement_id  = "AllowExecutionFromCloudWatch"
 }
 
 #### S3
 
-resource "aws_s3_bucket" "pc-usage-delta" {
-  bucket = "pc-usage-delta"
+resource "aws_s3_bucket" "pcs-usage-delta" {
+  bucket = "pcs-usage-delta"
   acl    = "private"
   tags   = { storestatus = "dnd" }
 }
 
-resource "aws_s3_bucket_public_access_block" "pc_usage_delta" {
-  bucket                  = aws_s3_bucket.pc-usage-delta.id
+resource "aws_s3_bucket_public_access_block" "pcs_usage_delta" {
+  bucket                  = aws_s3_bucket.pcs-usage-delta.id
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
@@ -165,27 +165,27 @@ resource "aws_s3_bucket_public_access_block" "pc_usage_delta" {
 
 #### KMS
 
-resource "aws_kms_key" "pc_usage_delta_kms_key" {
+resource "aws_kms_key" "pcs_usage_delta_kms_key" {
   description         = "KMS Key for encryption and decryption of environment variables."
   enable_key_rotation = true
   tags                = { storestatus = "dnd" }
 }
 
-resource "aws_kms_alias" "pc_usage_delta_kms_key_alias" {
-  name          = "alias/pc_usage_delta_kms_key"
-  target_key_id = aws_kms_key.pc_usage_delta_kms_key.key_id
+resource "aws_kms_alias" "pcs_usage_delta_kms_key_alias" {
+  name          = "alias/pcs_usage_delta_kms_key"
+  target_key_id = aws_kms_key.pcs_usage_delta_kms_key.key_id
 }
 
-resource "aws_kms_grant" "pc_usage_delta" {
-  name              = "pc_usage_delta"
-  key_id            = aws_kms_key.pc_usage_delta_kms_key.key_id
-  grantee_principal = aws_iam_role.pc_usage_delta_role.arn
+resource "aws_kms_grant" "pcs_usage_delta" {
+  name              = "pcs_usage_delta"
+  key_id            = aws_kms_key.pcs_usage_delta_kms_key.key_id
+  grantee_principal = aws_iam_role.pcs_usage_delta_role.arn
   operations        = ["Decrypt", "DescribeKey"]
 }
 
 #### IAM
 
-data "aws_iam_policy_document" "pc_usage_delta_cloudwatch" {
+data "aws_iam_policy_document" "pcs_usage_delta_cloudwatch" {
   statement {
     actions   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
     effect    = "Allow"
@@ -193,38 +193,38 @@ data "aws_iam_policy_document" "pc_usage_delta_cloudwatch" {
   }
 }
 
-resource "aws_iam_policy" "pc_usage_delta_cloudwatch_policy" {
-  name        = "pc_usage_delta_cloudwatch_policy"
+resource "aws_iam_policy" "pcs_usage_delta_cloudwatch_policy" {
+  name        = "pcs_usage_delta_cloudwatch_policy"
   description = "Allow writing to CloudWatch"
   path        = "/"
-  policy      = data.aws_iam_policy_document.pc_usage_delta_cloudwatch.json
+  policy      = data.aws_iam_policy_document.pcs_usage_delta_cloudwatch.json
 }
 
-resource "aws_iam_role_policy_attachment" "pc_usage_delta_cloudwatch" {
-  policy_arn = aws_iam_policy.pc_usage_delta_cloudwatch_policy.arn
-  role       = aws_iam_role.pc_usage_delta_role.name
+resource "aws_iam_role_policy_attachment" "pcs_usage_delta_cloudwatch" {
+  policy_arn = aws_iam_policy.pcs_usage_delta_cloudwatch_policy.arn
+  role       = aws_iam_role.pcs_usage_delta_role.name
 }
 
-data "aws_iam_policy_document" "pc_usage_delta_s3" {
+data "aws_iam_policy_document" "pcs_usage_delta_s3" {
   statement {
     actions   = ["s3:ListBucket", "s3:GetObject", "s3:PutObject"]
     effect    = "Allow"
-    resources = ["arn:aws:s3:::pc-usage-delta", "arn:aws:s3:::pc-usage-delta/*"]
+    resources = ["arn:aws:s3:::pcs-usage-delta", "arn:aws:s3:::pcs-usage-delta/*"]
   }
 }
 
-resource "aws_iam_policy" "pc_usage_delta_s3_policy" {
-  name        = "pc_usage_delta_s3_policy"
+resource "aws_iam_policy" "pcs_usage_delta_s3_policy" {
+  name        = "pcs_usage_delta_s3_policy"
   description = "Allow reading and writing to S3"
-  policy      = data.aws_iam_policy_document.pc_usage_delta_s3.json
+  policy      = data.aws_iam_policy_document.pcs_usage_delta_s3.json
 }
 
-resource "aws_iam_role_policy_attachment" "pc_usage_delta_s3" {
-  policy_arn = aws_iam_policy.pc_usage_delta_s3_policy.arn
-  role       = aws_iam_role.pc_usage_delta_role.name
+resource "aws_iam_role_policy_attachment" "pcs_usage_delta_s3" {
+  policy_arn = aws_iam_policy.pcs_usage_delta_s3_policy.arn
+  role       = aws_iam_role.pcs_usage_delta_role.name
 }
 
-data "aws_iam_policy_document" "pc_usage_delta_assume_role" {
+data "aws_iam_policy_document" "pcs_usage_delta_assume_role" {
   statement {
     actions       = ["sts:AssumeRole"]
     effect        = "Allow"
@@ -235,29 +235,29 @@ data "aws_iam_policy_document" "pc_usage_delta_assume_role" {
   }
 }
 
-resource "aws_iam_role" "pc_usage_delta_role" {
-  name               = "pc_usage_delta_role"
-  assume_role_policy = data.aws_iam_policy_document.pc_usage_delta_assume_role.json
+resource "aws_iam_role" "pcs_usage_delta_role" {
+  name               = "pcs_usage_delta_role"
+  assume_role_policy = data.aws_iam_policy_document.pcs_usage_delta_assume_role.json
   tags               = { storestatus = "dnd" }
 }
 
 #### CLOUDWATCH
 
-resource "aws_cloudwatch_event_rule" "pc_usage_delta" {
-  name                = "pc_usage_delta"
+resource "aws_cloudwatch_event_rule" "pcs_usage_delta" {
+  name                = "pcs_usage_delta"
   description         = "Trigger sampling of Prisma Cloud license usage"
   schedule_expression = "rate(1 day)"
   tags                = { storestatus = "dnd" }
 }
 
-resource "aws_cloudwatch_event_target" "pc_usage_delta" {
-  arn       = aws_lambda_function.pc_usage_delta.arn
-  rule      = aws_cloudwatch_event_rule.pc_usage_delta.name
-  target_id = "pc_usage_delta"
+resource "aws_cloudwatch_event_target" "pcs_usage_delta" {
+  arn       = aws_lambda_function.pcs_usage_delta.arn
+  rule      = aws_cloudwatch_event_rule.pcs_usage_delta.name
+  target_id = "pcs_usage_delta"
 }
 
-resource "aws_cloudwatch_log_group" "pc_usage_delta_cloudwatch" {
-  name              = "/aws/lambda/${aws_lambda_function.pc_usage_delta.function_name}"
+resource "aws_cloudwatch_log_group" "pcs_usage_delta_cloudwatch" {
+  name              = "/aws/lambda/${aws_lambda_function.pcs_usage_delta.function_name}"
   retention_in_days = 14
   tags              = { storestatus = "dnd" }
 }
