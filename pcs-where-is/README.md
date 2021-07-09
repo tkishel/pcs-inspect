@@ -26,22 +26,26 @@ export API3_SECRET_KEY=
 ### Example
 
 ```bash
-tkishel  ~ | Code | pcs-inspect | pcs-where-is  ./pcs-where-is.py example
+tkishel  ~ | Code | pcs-inspect | pcs-where-is ./pcs-where-is.py example
 example found on APP2 as Example Customer Tenant
 	Customer ID:   111
 	Serial Number: 123
 	Tenant ID:     456
 	Prisma ID:     789
-	Workloads:     12345
+	Renewal Date:  2020-12-15
 	Eval:          False
 	Active:        True
+	Credits:       100
+	Used Credits:  500
 
 example found on APP3 as Another Example Customer Tenant
 	Customer ID:   111
 	Serial Number: 234
 	Tenant ID:     567
 	Prisma ID:     890
-	Workloads:     100
+	Renewal Date:  2020-12-15
 	Eval:          True
 	Active:        True
+	Credits:       500
+	Used Credits:  100
 ```
