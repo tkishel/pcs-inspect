@@ -6,6 +6,8 @@ import os
 import requests
 import sys
 
+from datetime import datetime
+
 ##########################################################################################
 # Process arguments / parameters.
 ##########################################################################################
@@ -106,12 +108,13 @@ def execute(action, url, token, ca_bundle=None, requ_data=None):
             output(api_response.content)
     return result
 
-def find_customer(stack, customers, customer_name):
+def find_customer(stack, tenants, customer_name, url, ca_bundle, token):
     count = 0
-    if not customers:
+    if not tenants:
         return count
+
     customer_name_lower = customer_name.lower()
-    for customer in customers:
+    for customer in tenants:
         customer_lower = customer['customerName'].lower()
         if customer_name_lower in customer_lower:
             output('%s found on %s as %s' % (customer_name, stack, customer['customerName']))
@@ -123,11 +126,26 @@ def find_customer(stack, customers, customer_name):
                     output('\tSerial Number: %s' % customer['licenseDetails']['marketplaceData']['serialNumber'])
                 if 'tenantId' in customer['licenseDetails']['marketplaceData']:
                     output('\tTenant ID:     %s' % customer['licenseDetails']['marketplaceData']['tenantId'])
+                if 'endTs' in customer['licenseDetails'] and customer['licenseDetails']['endTs']:
+                    endDt = datetime.fromtimestamp(customer['licenseDetails']['endTs']/1000.0)
+                    output('\tRenewal Date:  %s' % endDt)
             output('\tPrisma ID:     %s' % customer['prismaId'])
-            output('\tWorkloads:     %s' % customer['workloads'])
             output('\tEval:          %s' % customer['eval'])
             output('\tActive:        %s' % customer['active'])
+            output('\tCredits:       %s' % customer['workloads'])
+
+            usage_query = json.dumps({'customerName': customer['customerName'], 'timeRange': {'type':'relative','value': {'amount': 1,'unit': 'month'}}})
+            usage = execute('POST', '%s/_support/license/api/v1/usage/time_series' % url, token, ca_bundle, usage_query)
+            if DEBUG_MODE:
+                output(json.dumps(usage, indent=4))
+            if usage and 'dataPoints' in usage and len(usage['dataPoints']) > 0:
+                current_usage = usage['dataPoints'][-1]
+                if 'counts' in current_usage and len(current_usage['counts']) > 0:
+                    current_usage_count = sum(sum(c.values()) for c in current_usage['counts'].values())
+                    output('\tUsed Credits:  %s' % current_usage_count)
+
             output()
+
             count += 1
     return count
 
@@ -142,17 +160,8 @@ found = 0
 for stack in CONFIG['STACKS']:
     if CONFIG['STACKS'][stack]['access_key']:
         token     = login(CONFIG['STACKS'][stack]['url'], CONFIG['STACKS'][stack]['access_key'], CONFIG['STACKS'][stack]['secret_key'], CONFIG['CA_BUNDLE'])
-        customers = execute('GET', '%s/_support/customer' % CONFIG['STACKS'][stack]['url'], token, CONFIG['CA_BUNDLE'])
-        found    += find_customer(stack, customers, CONFIG['CUSTOMER_NAME'])
+        tenants = execute('GET', '%s/_support/customer' % CONFIG['STACKS'][stack]['url'], token, CONFIG['CA_BUNDLE'])
+        found    += find_customer(stack, tenants, CONFIG['CUSTOMER_NAME'], CONFIG['STACKS'][stack]['url'], CONFIG['CA_BUNDLE'], token)
 
 if found == 0:
     output('%s not found on any configured stack' % CONFIG['CUSTOMER_NAME'])
-
-##########################################################################################
-# TODO:
-##########################################################################################
-
-# usage_query = json.dumps({'customerName': customer, 'timeRange': {'type':'relative','value': {'amount': 1,'unit': 'month'}}})
-# result = execute('POST', '%s/_support/license/api/v1/usage/time_series' % url, token, CONFIG['CA_BUNDLE'], usage_query)
-# print(json.dumps(result, indent=4))
-
