@@ -79,7 +79,7 @@ def login(url, access_key, secret_key, ca_bundle):
         api_response = json.loads(api_response.content)
         token = api_response.get('token')
     else:
-        output('API (%s) responded with an error\n%s' % (requ_url, api_response.text))
+        output('API (%s) responded with an error\n%s' % (endpoint, api_response.text))
         sys.exit(1)
     if DEBUG_MODE:
         output(endpoint)
@@ -101,7 +101,7 @@ def execute(action, url, token, ca_bundle=None, requ_data=None):
         try:
             result = json.loads(api_response.content)
         except ValueError:
-            output('API (%s) responded with an error\n%s' % (requ_url, api_response.content))
+            output('API (%s) responded with an error\n%s' % (endpoint, api_response.content))
             sys.exit(1)
     else:
         if DEBUG_MODE:
