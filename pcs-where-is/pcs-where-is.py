@@ -132,7 +132,11 @@ except ImportError:
     output('Error reading config')
     exit(1)
 
-if (CONFIG['STACKS']['API']['access_key'] == None):
+configured = False
+for stack in CONFIG['STACKS']:
+    if CONFIG['STACKS'][stack]['access_key'] != None: configured = True
+
+if (not configured):
     output("It appears you haven't configured credentials to access the Prisma Cloud stacks. Copy config.py.org to config.py and put them into your config.py file")
     exit(1)
 
