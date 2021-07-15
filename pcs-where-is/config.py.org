@@ -1,0 +1,20 @@
+CONFIG = {}
+CONFIG['STACKS'] = {
+    'API': {
+        'url':        'https://api.prismacloud.io',
+        'access_key': None,
+        'secret_key': None
+    },
+    'API2': {
+        'url':        'https://api2.prismacloud.io',
+        'access_key': None,
+        'secret_key': None
+    },
+    'API3': {
+        'url':        'https://api3.prismacloud.io',
+        'access_key': None,
+        'secret_key': None
+    }
+    # Add dictionaries for additional stacks here.
+}
+
