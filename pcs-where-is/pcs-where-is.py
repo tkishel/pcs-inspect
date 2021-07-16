@@ -39,34 +39,6 @@ def output(output_data=''):
     print(output_data)
 
 ##########################################################################################
-# Configure.
-##########################################################################################
-
-def configure(args):
-    config = {}
-    config['CA_BUNDLE'] = args.ca_bundle
-    config['CUSTOMER_NAME'] = args.customer_name
-    config['STACKS'] = {
-        'API': {
-            'url':        'https://api.prismacloud.io',
-            'access_key': os.environ.get('API_ACCESS_KEY', None),
-            'secret_key': os.environ.get('API_SECRET_KEY', None)
-        },
-        'API2': {
-            'url':        'https://api2.prismacloud.io',
-            'access_key': os.environ.get('API2_ACCESS_KEY', None),
-            'secret_key': os.environ.get('API2_SECRET_KEY', None)
-        },
-        'API3': {
-            'url':        'https://api3.prismacloud.io',
-            'access_key': os.environ.get('API3_ACCESS_KEY', None),
-            'secret_key': os.environ.get('API3_SECRET_KEY', None)
-        }
-        # Add dictionaries for additional stacks here.
-    }
-    return config
-
-##########################################################################################
 # Helpers.
 ##########################################################################################
 
@@ -153,7 +125,23 @@ def find_customer(stack, tenants, customer_name, url, ca_bundle, token):
 ## Main.
 ##########################################################################################
 
-CONFIG = configure(args)
+CONFIG = {}
+try:
+    from config import *
+except ImportError:
+    output('Error reading config')
+    exit(1)
+
+configured = False
+for stack in CONFIG['STACKS']:
+    if CONFIG['STACKS'][stack]['access_key'] != None: configured = True
+
+if (not configured):
+    output("It appears you haven't configured credentials to access the Prisma Cloud stacks. Copy config.py.org to config.py and put them into your config.py file")
+    exit(1)
+
+CONFIG['CA_BUNDLE'] = args.ca_bundle
+CONFIG['CUSTOMER_NAME'] = args.customer_name
 
 found = 0
 
