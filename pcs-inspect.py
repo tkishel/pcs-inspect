@@ -535,7 +535,7 @@ def read_collected_data():
 
 # cloud_type      = {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba_cloud': 0, 'oci': 0}
 # policy_mode     = {'custom': 0, 'default': 0}
-# policy_feature  = {'remediable': 0, 'shiftable': 0}
+# policy_feature  = {'remediable': 0, 'shiftable': 0, 'remediable_and_shiftable': 0}
 # policy_severity = {'high': 0, 'medium': 0, 'low': 0}
 # policy_type     = {'anomaly': 0, 'audit_event': 0, 'config': 0, 'iam': 0, 'network': 0}
 # alert_status    = {'open': 0, 'dismissed': 0, 'snoozed': 0, 'resolved': 0}
@@ -552,7 +552,7 @@ def process_collected_data():
     RESULTS['policies'] = {}
     RESULTS['alert_counts_from_policies'] = {
         'cloud_type': {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba_cloud': 0, 'oci': 0},
-        'feature':    {'remediable': 0, 'shiftable': 0},
+        'feature':    {'remediable': 0, 'shiftable': 0, 'remediable_and_shiftable': 0},
         'mode':       {'custom': 0, 'default': 0},
         'severity':   {'high': 0, 'medium': 0, 'low': 0},
         'status':     {'open': 0, 'dismissed': 0, 'snoozed': 0, 'resolved': 0},
@@ -569,7 +569,7 @@ def process_collected_data():
     }
     RESULTS['alert_counts_from_alerts'] = {
         'cloud_type':           {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba_cloud': 0, 'oci': 0},
-        'feature':              {'remediable': 0, 'shiftable': 0},
+        'feature':              {'remediable': 0, 'shiftable': 0, 'remediable_and_shiftable': 0},
         'mode':                 {'custom': 0, 'default': 0},
         'policy':               {'disabled': 0, 'deleted': 0},
         'status_by_feature': {
@@ -646,6 +646,9 @@ def process_policies(policies):
         RESULTS['policies'][this_policy_id]['policyCloudType']     = this_policy['cloudType'].lower()
         RESULTS['policies'][this_policy_id]['policyShiftable']     = 'build' in this_policy['policySubTypes']
         RESULTS['policies'][this_policy_id]['policyRemediable']    = this_policy['remediable']
+        #
+        RESULTS['policies'][this_policy_id]['policyShiftableRemediable'] = 'build' in this_policy['policySubTypes'] and this_policy['remediable']
+        #
         RESULTS['policies'][this_policy_id]['policySystemDefault'] = this_policy['systemDefault']
         RESULTS['policies'][this_policy_id]['policyLabels']        = this_policy['labels']
         if 'policyUpi' in this_policy:
@@ -668,6 +671,8 @@ def process_policies(policies):
             RESULTS['alert_counts_from_policies']['feature']['remediable']         += RESULTS['policies'][this_policy_id]['alertCount']
         if RESULTS['policies'][this_policy_id]['policyShiftable']:
             RESULTS['alert_counts_from_policies']['feature']['shiftable']          += RESULTS['policies'][this_policy_id]['alertCount']
+        if RESULTS['policies'][this_policy_id]['policyShiftableRemediable']:
+            RESULTS['alert_counts_from_policies']['feature']['remediable_and_shiftable'] += RESULTS['policies'][this_policy_id]['alertCount']
         if RESULTS['policies'][this_policy_id]['policySystemDefault'] == True:
             RESULTS['alert_counts_from_policies']['mode']['default']               += RESULTS['policies'][this_policy_id]['alertCount']
         else:
@@ -755,7 +760,11 @@ def process_alerts(alerts):
             # Alert data from the related Policy.
             RESULTS['alert_counts_from_alerts']['cloud_type'][RESULTS['policies'][this_policy_id]['policyCloudType']] += 1
             if RESULTS['policies'][this_policy_id]['policyShiftable']:
-                RESULTS['alert_counts_from_alerts']['feature']['shiftable']  += 1
+                RESULTS['alert_counts_from_alerts']['feature']['shiftable'] += 1
+            if RESULTS['policies'][this_policy_id]['policyRemediable']:
+                RESULTS['alert_counts_from_alerts']['feature']['remediable'] += 1
+            if RESULTS['policies'][this_policy_id]['policyShiftableRemediable']:
+                RESULTS['alert_counts_from_alerts']['feature']['remediable_and_shiftable'] += 1
             RESULTS['alert_counts_from_alerts']['severity_by_status'][this_alert['status']][RESULTS['policies'][this_policy_id]['policySeverity']] += 1
 
 ##########################################################################################
@@ -903,7 +912,7 @@ def output_alerts_by_policy(panda_writer):
         policy_is_remediable  = RESULTS['policies'][this_policy_id]['policyRemediable']
         policy_labels         = ', '.join(RESULTS['policies'][this_policy_id]['policyLabels'])
         policy_standards_list = ', '.join(map(str, RESULTS['policies'][this_policy_id]['complianceStandards']))
-        rows.append((policy_name, policy_upi, policy_upi_group, policy_default, policy_alert_count, policy_enabled, policy_severity, policy_type, policy_subtypes, policy_category, policy_class, policy_cloud_type, policy_is_remediable, policy_is_remediable, policy_labels, policy_standards_list))
+        rows.append((policy_name, policy_upi, policy_upi_group, policy_default, policy_alert_count, policy_enabled, policy_severity, policy_type, policy_subtypes, policy_category, policy_class, policy_cloud_type, policy_is_shiftable, policy_is_remediable, policy_labels, policy_standards_list))
     write_sheet(panda_writer, 'Open Alerts by Policy', rows)
     if not CONFIG['SUPPORT_API_MODE']:
         rows = []
@@ -925,7 +934,7 @@ def output_alerts_by_policy(panda_writer):
             policy_is_remediable  = RESULTS['policies'][this_policy_id]['policyRemediable']
             policy_labels         = ', '.join(RESULTS['policies'][this_policy_id]['policyLabels'])
             policy_standards_list = ', '.join(map(str, RESULTS['policies'][this_policy_id]['complianceStandards']))
-            rows.append((policy_name, policy_upi, policy_upi_group, policy_default, policy_alert_count, policy_enabled, policy_severity, policy_type, policy_subtypes, policy_category, policy_class, policy_cloud_type, policy_is_remediable, policy_is_remediable, policy_labels, policy_standards_list))
+            rows.append((policy_name, policy_upi, policy_upi_group, policy_default, policy_alert_count, policy_enabled, policy_severity, policy_type, policy_subtypes, policy_category, policy_class, policy_cloud_type, policy_is_shiftable, policy_is_remediable, policy_labels, policy_standards_list))
         rows.append((''))
         rows.append((''))
         rows.append(('Time Range: %s' % CONFIG['TIME_RANGE_LABEL'], ''))
@@ -963,6 +972,7 @@ def output_alerts_summary(panda_writer):
         ('',''),
         ('Open Alerts with IaC',                             RESULTS['alert_counts_from_policies']['feature']['shiftable']),
         ('Open Alerts with Remediation',                     RESULTS['alert_counts_from_policies']['feature']['remediable']),
+        ('Open Alerts with both IaC and Remediation',        RESULTS['alert_counts_from_policies']['feature']['remediable_and_shiftable']),
         ('',''),
         ('Open Alerts Generated by Custom Policies',         RESULTS['alert_counts_from_policies']['mode']['custom']),
         ('Open Alerts Generated by Default Policies',        RESULTS['alert_counts_from_policies']['mode']['default']),
@@ -1017,8 +1027,9 @@ def output_alerts_summary(panda_writer):
             ('Resolved By Delete Resourse',                 RESULTS['alert_counts_from_alerts']['resolved_by_resource']['deleted']),
             ('Resolved By Update Resourse',                 RESULTS['alert_counts_from_alerts']['resolved_by_resource']['updated']),
             ('',''),
-            ('Alerts Generated by Policies with IaC',         RESULTS['alert_counts_from_alerts']['feature']['shiftable']),
-            ('Alerts Generated by Policies with Remediation', RESULTS['alert_counts_from_alerts']['feature']['remediable']),
+            ('Alerts Generated by Policies with IaC',                      RESULTS['alert_counts_from_alerts']['feature']['shiftable']),
+            ('Alerts Generated by Policies with Remediation',              RESULTS['alert_counts_from_alerts']['feature']['remediable']),
+            ('Alerts Generated by Policies with both IaC and Remediation', RESULTS['alert_counts_from_alerts']['feature']['remediable_and_shiftable']),
             ('',''),
             ('Alerts Generated by Custom Policies',         RESULTS['alert_counts_from_alerts']['mode']['custom']),
             ('Alerts Generated by Default Policies',        RESULTS['alert_counts_from_alerts']['mode']['default']),
