@@ -64,6 +64,8 @@ def configure(args):
         }
         # Add dictionaries for additional stacks here.
     }
+    if DEBUG_MODE:
+        output(config['STACKS'])
     return config
 
 ##########################################################################################
