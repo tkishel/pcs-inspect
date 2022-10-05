@@ -1,0 +1,40 @@
+[MASTER]
+
+# Use multiple processes to speed up Pylint.
+# Specifying 0 will auto-detect the number of processors available to use.
+#
+jobs=2
+fail-under=9.0
+
+[BASIC]
+
+# Regular expression matching correct constant names. Overrides const-naming-style.
+#
+const-rgx=(([A-Z_][A-Z0-9_]*)|([a-z_][a-z0-9_]*)|(__.*__))$
+
+[DESIGN]
+
+min-public-methods=1
+max-public-methods=24
+max-args=8
+max-branches=21
+max-locals=24
+max-module-lines=1200
+max-nested-blocks=8
+max-statements=64
+
+[FORMAT]
+
+max-line-length=384
+
+[MESSAGES CONTROL]
+
+disable=
+    consider-using-f-string,
+    consider-using-with,
+    missing-function-docstring,
+    singleton-comparison
+
+[REPORTS]
+
+output-format=colorized

@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 
+""" Inspect a Prisma Cloud Tenant """
+
 import argparse
 import json
-import math
 import os
-import pandas as pd
 import re
-import requests
-from requests.exceptions import RequestException
 from shutil import which
 import sys
+
+import pandas as pd
+import requests
+from requests.exceptions import RequestException
 
 ##########################################################################################
 # Process arguments / parameters.
@@ -58,7 +60,7 @@ pc_parser.add_argument('-d', '--debug',
     action='store_true',
     help='(Optional) Enable debugging.')
 
-args = pc_parser.parse_args()
+argz = pc_parser.parse_args()
 
 ##########################################################################################
 # Helpers.
@@ -122,6 +124,7 @@ def delete_file_if_exists(file_name):
         os.remove(file_name)
 
 def open_sheet(file_name):
+    # pylint: disable=abstract-class-instantiated
     return pd.ExcelWriter(file_name, engine='xlsxwriter')
 
 def write_sheet(panda_writer, this_sheet_name, rows):
@@ -170,13 +173,12 @@ def make_api_call(method, url, requ_data=None):
             output(resp.text)
         if resp.ok:
             return resp.content
-        else:
-            # return bytes('[]', 'utf-8')
-            output('Error with API: Status Code: %s Details: %s' % (resp.status_code, resp.text))
-            sys.exit(1)
-    except RequestException as e:
+        # return bytes('[]', 'utf-8')
+        output('Error with API: Status Code: %s Details: %s' % (resp.status_code, resp.text))
+        sys.exit(1)
+    except RequestException as ex:
         output()
-        output('Error with API: URL: %s: Error: %s' % (url, str(e)))
+        output('Error with API: URL: %s: Error: %s' % (url, str(ex)))
         output()
         output('For CERTIFICATE_VERIFY_FAILED errors with GlobalProtect, try setting REQUESTS_CA_BUNDLE to a bundle with the Palo Alto Networks Inc Root CA.')
         sys.exit(1)
@@ -410,8 +412,10 @@ def get_integrations(output_file_name):
 
 #### WIP
 
-def get_cloud_resources(output_file_name, cloud_accounts_list=[]):
+def get_cloud_resources(output_file_name, cloud_accounts_list):
     delete_file_if_exists(output_file_name)
+    if not cloud_accounts_list:
+        cloud_accounts_list = []
     resource_list = []
     for cloud_account in cloud_accounts_list:
         body_params = {
@@ -509,8 +513,8 @@ def format_collected_data():
         this_file = CONFIG['RESULTS_FILE'][this_result_file]
         temp_file = '%s.temp' % this_file
         if not os.path.isfile(this_file):
-          output('Error: Query result file does not exist: %s' % this_file)
-          sys.exit(1)
+            output('Error: Query result file does not exist: %s' % this_file)
+            sys.exit(1)
         os.system('cat %s | jq > %s' % (this_file, temp_file))
         os.system('mv %s %s' % (temp_file, this_file))
         output('Formatting: %s' % this_file)
@@ -524,10 +528,10 @@ def read_collected_data():
     for this_result_file in CONFIG['RESULTS_FILE']:
         this_file = CONFIG['RESULTS_FILE'][this_result_file]
         if not os.path.isfile(this_file):
-          output('Error: Query result file does not exist: %s' % this_file)
-          sys.exit(1)
-        with open(this_file, 'r', encoding='utf8') as f:
-          DATA[this_result_file] = json.load(f)
+            output('Error: Query result file does not exist: %s' % this_file)
+            sys.exit(1)
+        with open(this_file, 'r', encoding='utf8') as json_file:
+            DATA[this_result_file] = json.load(json_file)
 
 ##########################################################################################
 # Process mode: Process the data.
@@ -543,7 +547,7 @@ def read_collected_data():
 def process_collected_data():
     # SUPPORT_API_MODE saves a dictionary (of Open) Alerts instead of a list.
     # Use that to override any '--support_api' argument.
-    if type(DATA['ALERTS']) is dict:
+    if isinstance(DATA['ALERTS'], dict):
         CONFIG['SUPPORT_API_MODE'] = True
         RESULTS['alerts_aggregated_by'] = process_aggregated_alerts(DATA['ALERTS'])
     # POLICIES
@@ -809,6 +813,7 @@ def output_collected_data():
 ##
 
 def upi_group(policy_upi = ''):
+    # pylint: disable=anomalous-backslash-in-string
     upi_search = re.search('^(.*?)\-(\d+)$', policy_upi)
     if upi_search:
         return upi_search.group(1)
@@ -1069,7 +1074,7 @@ def output_alerts_summary(panda_writer):
 
 # This is something of a constant after it has been initially populated by configure(),
 # except CONFIG['PRISMA_API_HEADERS']['x-redlock-auth'] and CONFIG['SUPPORT_API_MODE'] are added/updated later.
-CONFIG = configure(args)
+CONFIG = configure(argz)
 
 # This is a constant after it has been initially populated by read_collected_data().
 DATA = {}
