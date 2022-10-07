@@ -541,7 +541,7 @@ def read_collected_data():
 # policy_mode     = {'custom': 0, 'default': 0}
 # policy_feature  = {'remediable': 0, 'shiftable': 0, 'remediable_and_shiftable': 0}
 # policy_severity = {'high': 0, 'medium': 0, 'low': 0}
-# policy_type     = {'anomaly': 0, 'audit_event': 0, 'config': 0, 'iam': 0, 'network': 0, 'workload_incident': 0, 'workload_vulnerability': 0}
+# policy_type     = {'anomaly': 0, 'audit_event': 0, 'config': 0, 'iam': 0, 'network': 0, 'workload_incident': 0, 'workload_vulnerability': 0, 'attack_path': 0}
 # alert_status    = {'open': 0, 'dismissed': 0, 'snoozed': 0, 'resolved': 0}
 
 def process_collected_data():
@@ -560,7 +560,7 @@ def process_collected_data():
         'mode':       {'custom': 0, 'default': 0},
         'severity':   {'high': 0, 'medium': 0, 'low': 0},
         'status':     {'open': 0, 'dismissed': 0, 'snoozed': 0, 'resolved': 0},
-        'type':       {'anomaly': 0, 'audit_event': 0, 'config': 0, 'data': 0, 'iam': 0, 'network': 0, 'workload_incident': 0, 'workload_vulnerability': 0},
+        'type':       {'anomaly': 0, 'audit_event': 0, 'config': 0, 'data': 0, 'iam': 0, 'network': 0, 'workload_incident': 0, 'workload_vulnerability': 0, 'attack_path': 0},
     }
     process_policies(DATA['POLICIES'])
     # ALERTS
@@ -569,7 +569,7 @@ def process_collected_data():
     RESULTS['policy_counts_from_alerts'] = {
         'cloud_type': {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba_cloud': 0, 'oci': 0},
         'severity': {'high': 0, 'medium': 0, 'low': 0},
-        'type':     {'anomaly': 0, 'audit_event': 0, 'config': 0, 'data': 0, 'iam': 0, 'network': 0, 'workload_incident': 0, 'workload_vulnerability': 0},
+        'type':     {'anomaly': 0, 'audit_event': 0, 'config': 0, 'data': 0, 'iam': 0, 'network': 0, 'workload_incident': 0, 'workload_vulnerability': 0, 'attack_path': 0},
     }
     RESULTS['alert_counts_from_alerts'] = {
         'cloud_type':           {'all': 0, 'aws': 0, 'azure': 0, 'gcp': 0, 'alibaba_cloud': 0, 'oci': 0},
@@ -587,7 +587,7 @@ def process_collected_data():
             'snoozed':          {'high': 0, 'medium': 0, 'low': 0},
             'resolved':         {'high': 0, 'medium': 0, 'low': 0},
         },
-        'type':                 {'anomaly': 0, 'audit_event': 0, 'config': 0, 'data': 0, 'iam': 0, 'network': 0, 'workload_incident': 0, 'workload_vulnerability': 0},
+        'type':                 {'anomaly': 0, 'audit_event': 0, 'config': 0, 'data': 0, 'iam': 0, 'network': 0, 'workload_incident': 0, 'workload_vulnerability': 0, 'attack_path': 0},
         'resolved_by_policy':   {'disabled': 0, 'deleted': 0},
         'resolved_by_resource': {'deleted': 0, 'updated': 0},
     }
@@ -616,7 +616,7 @@ def process_collected_data():
 def process_aggregated_alerts(alerts):
     alerts_by = {
         'policy':   {},
-        'type':     {'anomaly': 0, 'audit_event': 0, 'config': 0, 'data': 0, 'iam': 0,'network': 0, 'workload_incident': 0, 'workload_vulnerability': 0},
+        'type':     {'anomaly': 0, 'audit_event': 0, 'config': 0, 'data': 0, 'iam': 0,'network': 0, 'workload_incident': 0, 'workload_vulnerability': 0, 'attack_path': 0},
         'severity': {'high': 0, 'medium': 0, 'low': 0},
         'status':   {'open': 0, 'resolved': 0}
     }
@@ -981,6 +981,7 @@ def output_alerts_summary(panda_writer):
             ('Open Network Alerts',                              RESULTS['alert_counts_from_policies']['type']['network']),
             ('Open Workload Incident Alerts',                    RESULTS['alert_counts_from_policies']['type']['workload_incident']),
             ('Open Workload Vulnerability Alerts',               RESULTS['alert_counts_from_policies']['type']['workload_vulnerability']),
+            ('Open Attack Path Alerts',                          RESULTS['alert_counts_from_policies']['type']['attack_path']),
             ('',''),
             ('Open Alerts with IaC',                             RESULTS['alert_counts_from_policies']['feature']['shiftable']),
             ('Open Alerts with Remediation',                     RESULTS['alert_counts_from_policies']['feature']['remediable']),
@@ -1015,6 +1016,7 @@ def output_alerts_summary(panda_writer):
             ('Network Alerts',                              RESULTS['alert_counts_from_alerts']['type']['network']),
             ('Workload Incident Alerts',                    RESULTS['alert_counts_from_alerts']['type']['workload_incident']),
             ('Workload Vulnerability Alerts',               RESULTS['alert_counts_from_alerts']['type']['workload_vulnerability']),
+            ('Attack Path Alerts',                          RESULTS['alert_counts_from_alerts']['type']['attack_path']),
             ('',''),
             ('Open Alerts',                                 RESULTS['alert_counts_from_alerts']['status']['open']),
             ('Dismissed Alerts',                            RESULTS['alert_counts_from_alerts']['status']['dismissed']),
